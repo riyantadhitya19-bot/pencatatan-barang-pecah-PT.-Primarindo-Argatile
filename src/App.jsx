@@ -842,35 +842,36 @@ function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Action Bar */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="relative flex-1 max-w-md">
+        <div className="mb-6 flex flex-col gap-4 items-stretch">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search incidents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
+              inputMode="search"
             />
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Link
               to="/analytics"
-              className="flex items-center gap-2 bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors shadow-sm"
+              className="flex items-center justify-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm touch-manipulation"
             >
               <BarChart3 className="w-5 h-5" />
               Lihat Analisis
             </Link>
             <button
               onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+              className="flex items-center justify-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors shadow-sm touch-manipulation"
             >
               <Download className="w-5 h-5" />
               Export Data
             </button>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors shadow-sm"
+              className="flex items-center justify-center gap-2 bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors shadow-sm touch-manipulation"
             >
               <Plus className="w-5 h-5" />
               New Incident
@@ -879,18 +880,19 @@ function Dashboard() {
         </div>
 
         {/* Pagination Info */}
-        <div className="mb-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between text-sm text-slate-600">
-          <div className="flex items-center gap-4">
-            <span>
+        <div className="mb-4 flex flex-col gap-4 items-stretch text-sm text-slate-600">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <span className="text-center sm:text-left">
               Menampilkan {filteredIncidents.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredIncidents.length)} dari {filteredIncidents.length} data
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 justify-center sm:justify-end">
               <label htmlFor="itemsPerPage" className="text-slate-600">Tampilkan:</label>
               <select
                 id="itemsPerPage"
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
+                inputMode="numeric"
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
@@ -902,36 +904,36 @@ function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200 touch-manipulation">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-slate-600 text-sm">Total Kejadian</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{incidents.length}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{incidents.length}</p>
               </div>
-              <div className="p-3 bg-slate-100 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-slate-600" />
+              <div className="p-2 sm:p-3 bg-slate-100 rounded-lg flex-shrink-0">
+                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200 touch-manipulation">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-slate-600 text-sm">Total Quantity (All Time)</p>
-                <p className="text-3xl font-bold text-yellow-600 mt-1">
+                <p className="text-2xl sm:text-3xl font-bold text-yellow-600 mt-1">
                   {incidents.reduce((sum, inc) => sum + (inc.quantity || 0), 0)} Box
                 </p>
               </div>
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <Package className="w-6 h-6 text-yellow-600" />
+              <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg flex-shrink-0">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200 touch-manipulation">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-slate-600 text-sm">Total Quantity (Bulan Ini)</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">
+                <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">
                   {incidents.filter(inc => {
                     const incDate = new Date(inc.date);
                     const now = new Date();
@@ -940,37 +942,37 @@ function Dashboard() {
                   }).reduce((sum, inc) => sum + (inc.quantity || 0), 0)} Box
                 </p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Package className="w-6 h-6 text-blue-600" />
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200 touch-manipulation">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-slate-600 text-sm">Tanggal Terakhir Kejadian</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">
+                <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
                   {incidents.length > 0
                     ? new Date(Math.max(...incidents.map(inc => new Date(inc.date)))).toLocaleDateString('id-ID')
                     : '-'
                   }
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <Calendar className="w-6 h-6 text-green-600" />
+              <div className="p-2 sm:p-3 bg-green-100 rounded-lg flex-shrink-0">
+                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200 touch-manipulation">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-slate-600 text-sm">Status Pending</p>
-                <p className="text-3xl font-bold text-red-600 mt-1">
+                <p className="text-2xl sm:text-3xl font-bold text-red-600 mt-1">
                   {incidents.filter(inc => inc.status === 'pending').length}
                 </p>
               </div>
-              <div className="p-3 bg-red-100 rounded-lg">
-                <User className="w-6 h-6 text-red-600" />
+              <div className="p-2 sm:p-3 bg-red-100 rounded-lg flex-shrink-0">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
               </div>
             </div>
           </div>
@@ -990,10 +992,10 @@ function Dashboard() {
             >
               {/* Modal Header */}
               <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-xl">
-                <h2 className="text-2xl font-bold text-slate-900">Export Data</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Export Data</h2>
                 <button
                   onClick={() => setShowExportModal(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors touch-manipulation"
                   type="button"
                 >
                   <X className="w-6 h-6 text-slate-600" />
@@ -1016,7 +1018,7 @@ function Dashboard() {
                       placeholder="Contoh: 0001"
                       value={exportDateRange.customNumber}
                       onChange={(e) => setExportDateRange({...exportDateRange, customNumber: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                     />
                     <p className="text-xs text-slate-500 mt-1">
                       Format lengkap: [nomor]/PA/SHIPP/BAKP/[bulan romawi]/[tahun]
@@ -1030,7 +1032,7 @@ function Dashboard() {
                       type="date"
                       value={exportDateRange.startDate}
                       onChange={(e) => setExportDateRange({...exportDateRange, startDate: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                     />
                   </div>
                   <div>
@@ -1041,45 +1043,45 @@ function Dashboard() {
                       type="date"
                       value={exportDateRange.endDate}
                       onChange={(e) => setExportDateRange({...exportDateRange, endDate: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                     />
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3">
                   <button
                     onClick={exportToPDF}
                     disabled={exporting || !exportDateRange.customNumber || !exportDateRange.startDate || !exportDateRange.endDate}
-                    className="flex-1 flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-2 bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed touch-manipulation text-base"
                   >
                     {exporting ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <FileText className="w-5 h-5" />
+                      <FileText className="w-6 h-6" />
                     )}
                     Export PDF
                   </button>
                   <button
                     onClick={exportToExcel}
                     disabled={exporting || !exportDateRange.startDate || !exportDateRange.endDate}
-                    className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed touch-manipulation text-base"
                   >
                     {exporting ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <FileSpreadsheet className="w-5 h-5" />
+                      <FileSpreadsheet className="w-6 h-6" />
                     )}
                     Export Excel
                   </button>
                   <button
                     onClick={exportPhotosToPDF}
                     disabled={exporting || !exportDateRange.startDate || !exportDateRange.endDate}
-                    className="flex-1 flex items-center justify-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-2 bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed touch-manipulation text-base"
                   >
                     {exporting ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <ImageIcon className="w-5 h-5" />
+                      <ImageIcon className="w-6 h-6" />
                     )}
                     Export Foto
                   </button>
@@ -1088,7 +1090,7 @@ function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setShowExportModal(false)}
-                  className="w-full bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors"
+                  className="w-full bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 transition-colors touch-manipulation text-base"
                 >
                   Cancel
                 </button>
@@ -1109,10 +1111,10 @@ function Dashboard() {
             >
               {/* Modal Header */}
               <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-xl">
-                <h2 className="text-2xl font-bold text-slate-900">Edit Data Pecah</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Edit Data Pecah</h2>
                 <button
                   onClick={() => setShowEditModal(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors touch-manipulation"
                   type="button"
                 >
                   <X className="w-6 h-6 text-slate-600" />
@@ -1131,7 +1133,7 @@ function Dashboard() {
                       required
                       value={editingIncident.item_name || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, item_name: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                       placeholder="Enter item name"
                     />
                   </div>
@@ -1144,7 +1146,7 @@ function Dashboard() {
                       required
                       value={editingIncident.date || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, date: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                     />
                   </div>
                   <div>
@@ -1156,7 +1158,7 @@ function Dashboard() {
                       required
                       value={editingIncident.shading || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, shading: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                       placeholder="Reporter name"
                     />
                   </div>
@@ -1169,7 +1171,7 @@ function Dashboard() {
                       required
                       value={editingIncident.sizing || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, sizing: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                       placeholder="Masukkan sizing"
                     />
                   </div>
@@ -1181,7 +1183,7 @@ function Dashboard() {
                       required
                       value={editingIncident.ukuran || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, ukuran: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                     >
                       <option value="">Pilih ukuran</option>
                       <option value="50x50">50x50</option>
@@ -1200,7 +1202,7 @@ function Dashboard() {
                       required
                       value={editingIncident.merk || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, merk: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                       placeholder="Masukkan merk"
                     />
                   </div>
@@ -1212,7 +1214,7 @@ function Dashboard() {
                       required
                       value={editingIncident.kualitas || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, kualitas: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                     >
                       <option value="">Pilih kualitas</option>
                       <option value="EXP">EXP</option>
@@ -1230,7 +1232,7 @@ function Dashboard() {
                       min="1"
                       value={editingIncident.quantity || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, quantity: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                       placeholder="Jumlah barang pecah"
                     />
                   </div>
@@ -1243,7 +1245,7 @@ function Dashboard() {
                     required
                     value={editingIncident.jenis_pecah || ''}
                     onChange={(e) => setEditingIncident({...editingIncident, jenis_pecah: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                   >
                     <option value="">Pilih jenis pecah</option>
                     <option value="PECAH LOADING">PECAH LOADING</option>
@@ -1258,7 +1260,7 @@ function Dashboard() {
                     value={editingIncident.description || ''}
                     onChange={(e) => setEditingIncident({...editingIncident, description: e.target.value})}
                     rows="3"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
                     placeholder="Keterangan tambahan (opsional)..."
                   />
                 </div>
@@ -1271,7 +1273,7 @@ function Dashboard() {
                       type="file"
                       accept="image/*"
                       onChange={handleEditFileChange}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
                     <div className="flex items-center gap-2 mt-2 text-sm text-slate-600">
                       <Upload className="w-4 h-4" />
@@ -1285,15 +1287,15 @@ function Dashboard() {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     type="submit"
                     disabled={updating}
-                    className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation text-base"
                   >
                     {updating ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         Menyimpan...
                       </>
                     ) : (
@@ -1303,7 +1305,8 @@ function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setShowEditModal(false)}
-                    className="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 transition-colors"
+                    className="bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 transition-colors touch-manipulation text-base"
+                    type="button"
                   >
                     Cancel
                   </button>
@@ -1325,10 +1328,10 @@ function Dashboard() {
             >
               {/* Modal Header */}
               <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-xl">
-                <h2 className="text-2xl font-bold text-slate-900">Tambah Pecah Terbaru</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Tambah Pecah Terbaru</h2>
                 <button
                   onClick={() => setShowForm(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors touch-manipulation"
                   type="button"
                 >
                   <X className="w-6 h-6 text-slate-600" />
@@ -1347,7 +1350,7 @@ function Dashboard() {
                     required
                     value={formData.itemName}
                     onChange={(e) => setFormData({...formData, itemName: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                     placeholder="Enter item name"
                   />
                 </div>
@@ -1360,7 +1363,7 @@ function Dashboard() {
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({...formData, date: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                   />
                 </div>
                 <div>
@@ -1372,7 +1375,7 @@ function Dashboard() {
                     required
                     value={formData.reporter}
                     onChange={(e) => setFormData({...formData, reporter: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                     placeholder="Reporter name"
                   />
                 </div>
@@ -1385,7 +1388,7 @@ function Dashboard() {
                     required
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                     placeholder="Masukkan sizing"
                   />
                 </div>
@@ -1397,7 +1400,7 @@ function Dashboard() {
                     required
                     value={formData.ukuran}
                     onChange={(e) => setFormData({...formData, ukuran: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                   >
                     <option value="">Pilih ukuran</option>
                     <option value="50x50">50x50</option>
@@ -1416,7 +1419,7 @@ function Dashboard() {
                     required
                     value={formData.merk}
                     onChange={(e) => setFormData({...formData, merk: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                     placeholder="Masukkan merk"
                   />
                 </div>
@@ -1428,7 +1431,7 @@ function Dashboard() {
                     required
                     value={formData.kualitas}
                     onChange={(e) => setFormData({...formData, kualitas: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                   >
                     <option value="">Pilih kualitas</option>
                     <option value="EXP">EXP</option>
@@ -1446,7 +1449,7 @@ function Dashboard() {
                     min="1"
                     value={formData.quantity}
                     onChange={(e) => setFormData({...formData, quantity: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                     placeholder="Jumlah barang pecah"
                   />
                 </div>
@@ -1459,7 +1462,7 @@ function Dashboard() {
                   required
                   value={formData.jenisPecah}
                   onChange={(e) => setFormData({...formData, jenisPecah: e.target.value})}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                 >
                   <option value="">Pilih jenis pecah</option>
                   <option value="PECAH LOADING">PECAH LOADING</option>
@@ -1474,7 +1477,7 @@ function Dashboard() {
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   rows="3"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
                   placeholder="Keterangan tambahan (opsional)..."
                 />
               </div>
@@ -1487,7 +1490,7 @@ function Dashboard() {
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
                   />
                   <div className="flex items-center gap-2 mt-2 text-sm text-slate-600">
                     <Upload className="w-4 h-4" />
@@ -1501,15 +1504,15 @@ function Dashboard() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation text-base"
                 >
                   {uploading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       Menyimpan...
                     </>
                   ) : (
@@ -1519,7 +1522,7 @@ function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 transition-colors"
+                  className="bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 transition-colors touch-manipulation text-base"
                 >
                   Cancel
                 </button>
@@ -1549,53 +1552,53 @@ function Dashboard() {
               <div key={incident.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-start gap-3 mb-3">
+                      <div className="flex flex-col sm:flex-row items-start gap-3 mb-3">
                       {incident.photo_url ? (
-                        <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
-                          <img 
-                            src={incident.photo_url} 
-                            alt="Foto barang pecah" 
+                        <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 mx-auto sm:mx-0">
+                          <img
+                            src={incident.photo_url}
+                            alt="Foto barang pecah"
                             className="w-full h-full object-cover"
                           />
                         </div>
                       ) : (
-                        <div className="p-2 bg-red-50 rounded-lg mt-1">
+                        <div className="p-2 bg-red-50 rounded-lg mt-1 mx-auto sm:mx-0">
                           <Package className="w-5 h-5 text-red-500" />
                         </div>
                       )}
-                      <div className="flex-1">
+                      <div className="flex-1 text-center sm:text-left">
                         <h3 className="text-lg font-semibold text-slate-900">{incident.item_name}</h3>
-                        <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                          <div className="flex items-center gap-1 text-slate-600">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-sm">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <Calendar className="w-4 h-4" />
                             <span className="font-medium">Tanggal:</span>
                             <span>{new Date(incident.date).toLocaleDateString('id-ID')}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-slate-600">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <span className="font-medium">Shading:</span>
                             <span>{incident.shading}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-slate-600">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <span className="font-medium">Sizing:</span>
                             <span>{incident.sizing}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-slate-600">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <span className="font-medium">Ukuran:</span>
                             <span>{incident.ukuran}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-slate-600">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <span className="font-medium">Merk:</span>
                             <span>{incident.merk}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-slate-600">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <span className="font-medium">Kualitas:</span>
                             <span className="px-2 py-0.5 bg-slate-100 rounded">{incident.kualitas}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-slate-600">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <span className="font-medium">Quantity:</span>
                             <span className="font-semibold text-red-600">{incident.quantity} Box</span>
                           </div>
-                          <div className="flex items-center gap-1 text-slate-600 col-span-2">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600 col-span-1 sm:col-span-2">
                             <span className="font-medium">Jenis Pecah:</span>
                             <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold">{incident.jenis_pecah}</span>
                           </div>
@@ -1603,14 +1606,15 @@ function Dashboard() {
                       </div>
                     </div>
                     {incident.description && (
-                      <p className="text-slate-700 mb-3 pl-24"><span className="font-medium">Keterangan:</span> {incident.description}</p>
+                      <p className="text-slate-700 mb-3 text-center sm:text-left"><span className="font-medium">Keterangan:</span> {incident.description}</p>
                     )}
-                    <div className="flex items-center gap-2 pl-24">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
                       <label className="text-sm text-slate-600">Status:</label>
                       <select
                         value={incident.status}
                         onChange={(e) => handleStatusChange(incident.id, e.target.value)}
-                        className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(incident.status)}`}
+                        className={`px-4 py-2 rounded-full text-sm font-medium border touch-manipulation text-base ${getStatusColor(incident.status)}`}
+                        inputMode="text"
                       >
                         <option value="pending">Pending</option>
                         <option value="investigating">Investigating</option>
@@ -1618,22 +1622,24 @@ function Dashboard() {
                       </select>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 justify-center sm:justify-end">
                     <button
                       onClick={() => handleEdit(incident)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
                       title="Edit data"
+                      type="button"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
                     <button
                       onClick={() => handleDelete(incident.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors touch-manipulation"
                       title="Hapus data"
+                      type="button"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-6 h-6" />
                     </button>
                   </div>
                 </div>
@@ -1644,21 +1650,22 @@ function Dashboard() {
 
         {/* Pagination */}
         {filteredIncidents.length > itemsPerPage && (
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="mt-8 flex flex-col items-center gap-4">
             <div className="text-sm text-slate-600">
               Halaman {currentPage} dari {totalPages}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                      type="button"
+                    >
+                      Previous
+                    </button>
 
               {/* Page Numbers */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-wrap">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum
                   if (totalPages <= 5) {
@@ -1675,11 +1682,12 @@ function Dashboard() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
+                      className={`px-4 py-2 text-sm border rounded-lg transition-colors touch-manipulation ${
                         currentPage === pageNum
                           ? 'bg-blue-500 text-white border-blue-500'
                           : 'border-slate-300 hover:bg-slate-50'
                       }`}
+                      type="button"
                     >
                       {pageNum}
                     </button>
@@ -1690,7 +1698,8 @@ function Dashboard() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                type="button"
               >
                 Next
               </button>

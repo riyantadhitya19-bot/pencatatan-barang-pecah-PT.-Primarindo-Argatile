@@ -252,8 +252,9 @@ function AnalyticsPage() {
 
         pdf.setFont('helvetica', 'normal')
         const merkData = getCategoryData('merk')
+        const filteredQuantity = getFilteredIncidents().reduce((sum, inc) => sum + (inc.quantity || 0), 0)
         merkData.slice(0, 5).forEach((item, index) => {
-          const percentage = totalQuantity > 0 ? ((item.value / totalQuantity) * 100).toFixed(1) : 0
+          const percentage = filteredQuantity > 0 ? ((item.value / filteredQuantity) * 100).toFixed(1) : 0
           pdf.text(`${index + 1}. ${item.name}: ${item.value} Box (${percentage}%)`, margin + 10, yPosition)
           yPosition += 8
         })
@@ -522,7 +523,13 @@ function AnalyticsPage() {
               <div className="flex items-center gap-2 mb-6">
                 <TrendingUp className="w-6 h-6 text-blue-600" />
                 <h2 className="text-2xl font-semibold text-slate-900">
-                  Tren Bulanan {selectedYear !== 'all' ? `(${selectedYear})` : '(6 Bulan Terakhir)'}
+                  Tren Bulanan {
+                    selectedYear !== 'all'
+                      ? selectedMonth !== 'all'
+                        ? `(${new Date(parseInt(selectedYear), parseInt(selectedMonth)).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })})`
+                        : `(${selectedYear})`
+                      : '(6 Bulan Terakhir)'
+                  }
                 </h2>
               </div>
               <ResponsiveContainer width="100%" height={400}>
