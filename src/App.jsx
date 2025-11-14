@@ -8,6 +8,34 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 
+const MERK_OPTIONS = [
+  'OCTAGON',
+  'VALENCIA',
+  'ARLES',
+  'MANDALAY',
+  'PRIMATILES',
+  'ARGA INDOTILE',
+  'VANDAN',
+  'VENETAS',
+  'YUKA',
+  'MAGNETO',
+  'MIXED RIMPIL'
+]
+
+const REPORTER_OPTIONS = [
+  'ASEP PEDIANTO',
+  'ENDANG KURNIAWAN',
+  'JAHUDI',
+  'RAMIN'
+]
+
+const ensureOption = (options, value) => {
+  if (value && !options.includes(value)) {
+    return [...options, value]
+  }
+  return options
+}
+
 function Dashboard() {
   const [incidents, setIncidents] = useState([])
   const [showForm, setShowForm] = useState(false)
@@ -39,8 +67,7 @@ function Dashboard() {
     jenisPecah: '',
     description: '',
     photoFile: null,
-    photoUrl: '',
-    status: 'pending'
+    photoUrl: ''
   })
 
   // Fetch incidents from Supabase on mount
@@ -118,8 +145,7 @@ function Dashboard() {
           quantity: parseInt(formData.quantity) || 0,
           jenis_pecah: formData.jenisPecah,
           description: formData.description,
-          photo_url: photoUrl,
-          status: 'pending'
+          photo_url: photoUrl
         }])
         .select()
       
@@ -141,8 +167,7 @@ function Dashboard() {
         jenisPecah: '',
         description: '',
         photoFile: null,
-        photoUrl: '',
-        status: 'pending'
+        photoUrl: ''
       })
       
       // Reset file input
@@ -278,7 +303,8 @@ function Dashboard() {
     (inc.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inc.shading || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inc.sizing || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (inc.merk || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (inc.merk || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (inc.description || inc.keterangan || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // Pagination calculations
@@ -346,9 +372,10 @@ function Dashboard() {
       }
 
       const doc = new jsPDF()
+      const pageHeight = doc.internal.pageSize.height
 
       // Header Background
-      doc.setFillColor(59, 130, 246) // Blue color like system theme
+      doc.setFillColor(30, 41, 59) // slate-800
       doc.rect(0, 0, doc.internal.pageSize.width, 50, 'F')
 
       // Header - Company Name
@@ -358,24 +385,36 @@ function Dashboard() {
       const companyText = 'PT. PRIMARINDO ARGATILE'
       const companyWidth = doc.getTextWidth(companyText)
       doc.text(companyText, (doc.internal.pageSize.width - companyWidth) / 2, 20)
-
-      // Title
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      const titleText = 'Berita Acara Keramik Pecah'
-      const titleWidth = doc.getTextWidth(titleText)
-      doc.text(titleText, (doc.internal.pageSize.width - titleWidth) / 2, 28)
-
-      // BA Number
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'normal')
-      const currentMonth = new Date().getMonth() + 1
-      const currentYear = new Date().getFullYear()
-      const monthRoman = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][currentMonth]
-      const baNumber = `${exportDateRange.customNumber}/PA/SHIPP/BAKP/${monthRoman}/${currentYear}`
-      const baText = `Nomor: ${baNumber}`
-      const baWidth = doc.getTextWidth(baText)
-      doc.text(baText, (doc.internal.pageSize.width - baWidth) / 2, 38)
+      // Slogan satu baris
+      const highText = 'HIGH'
+      const qcText = 'Quality Ceramic Tiles'
+      doc.setFontSize(15); doc.setFont('helvetica', 'bold');
+      const highW = doc.getTextWidth(highText)
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      const qcW = doc.getTextWidth(qcText)
+      const totalW = highW + 2 + qcW; // rapatkan: 2pt gap
+      let startX = (doc.internal.pageSize.width - totalW) / 2;
+      doc.setFontSize(15); doc.setFont('helvetica', 'bold');
+      doc.text(highText, startX, 28);
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      doc.text(qcText, startX + highW + 2, 28);
+      // Judul utama di bawah slogan
+      const titleText = 'Berita Acara Keramik Pecah';
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      const titleWidth = doc.getTextWidth(titleText);
+      doc.text(titleText, (doc.internal.pageSize.width - titleWidth) / 2, 36);
+      // Nomor: di bawah judul, dengan jarak yang cukup
+      const startDate = exportDateRange.startDate ? new Date(exportDateRange.startDate) : new Date();
+      const currentMonth = startDate.getMonth() + 1;
+      const currentYear = startDate.getFullYear();
+      const monthRoman = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][currentMonth];
+      const baNumber = `${exportDateRange.customNumber}/PA/SHIPP/BAKP/${monthRoman}/${currentYear}`;
+      const baText = `Nomor: ${baNumber}`;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      const baWidth = doc.getTextWidth(baText);
+      doc.text(baText, (doc.internal.pageSize.width - baWidth) / 2, 44);
 
       // Reset text color for body content
       doc.setTextColor(0, 0, 0)
@@ -389,6 +428,14 @@ function Dashboard() {
       doc.setFontSize(10)
       doc.setFont('helvetica', 'bold')
       doc.text(`Total Quantity: ${totalQuantity} Box`, 20, 64)
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const endDate = exportDateRange.endDate ? new Date(exportDateRange.endDate) : startDate;
+      const startDateText = startDate.toLocaleDateString('id-ID');
+      const endDateText = endDate.toLocaleDateString('id-ID');
+      const incidentDateText = startDateText === endDateText ? startDateText : `${startDateText} - ${endDateText}`;
+      const rincianText = `Pada tanggal ${incidentDateText} terdapat barang pecah dengan rincian sebagai berikut:`;
+      doc.text(rincianText, 20, 70);
 
       // Table data
       const tableData = filteredData.map((inc, index) => [
@@ -402,22 +449,31 @@ function Dashboard() {
         inc.kualitas,
         inc.quantity,
         inc.jenis_pecah,
-        inc.description || '-'
+        inc.description || inc.keterangan || '-'
       ])
 
       autoTable(doc, {
-        head: [['No', 'Nama Motif', 'Tanggal', 'Shading', 'Sizing', 'Ukuran', 'Merk', 'Kualitas', 'Quantity', 'Jenis Pecah', 'Keterangan']],
+        head: [['No', 'Nama Motif', 'Tanggal', 'Shading', 'Sizing', 'Ukuran', 'Merk', 'Kualitas', 'Quantity', 'Jenis Pecah', 'Reporter Name']],
         body: tableData,
         startY: 72,
         styles: { fontSize: 8 },
         headStyles: { fillColor: [239, 68, 68] },
         alternateRowStyles: { fillColor: [249, 250, 251] }
       })
+      const tableEndY = doc.lastAutoTable.finalY || 72;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const closingText = 'Adapun barang pecah tersebut disebabkan oleh proses operasional perapihan gudang dan loading. Demikian berita acara ini dibuat dengan sebenar-benarnya untuk dapat digunakan sebagaimana mestinya.';
+      const wrappedClosing = doc.splitTextToSize(closingText, doc.internal.pageSize.width - 40);
+      const desiredClosingStart = pageHeight - 90;
+      const closingStartY = Math.max(tableEndY + 10, desiredClosingStart);
+      doc.text(wrappedClosing, 20, closingStartY);
+      const lineHeight = 5.5;
+      const closingHeight = wrappedClosing.length * lineHeight;
+      const signatureBaseY = closingStartY + closingHeight + 12;
+      const signatureY = Math.min(signatureBaseY, pageHeight - 50);
 
       // Signature areas - positioned just above footer
-      const pageHeight = doc.internal.pageSize.height
-      const signatureY = pageHeight - 70 // Position above footer (moved down slightly)
-
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
 
@@ -449,7 +505,7 @@ function Dashboard() {
         doc.setPage(i)
 
         // Footer background
-        doc.setFillColor(59, 130, 246) // Blue color like system theme
+        doc.setFillColor(30, 41, 59) // slate-800
         doc.rect(0, doc.internal.pageSize.height - 20, doc.internal.pageSize.width, 20, 'F')
 
         // Footer text
@@ -495,7 +551,7 @@ function Dashboard() {
         'Kualitas': inc.kualitas,
         'Quantity': inc.quantity,
         'Jenis Pecah': inc.jenis_pecah,
-        'Keterangan': inc.description || '-',
+        'Reporter Name': inc.description || inc.keterangan || '-',
         'Status': inc.status
       }))
 
@@ -515,7 +571,7 @@ function Dashboard() {
         { wch: 10 }, // Kualitas
         { wch: 10 }, // Quantity
         { wch: 15 }, // Jenis Pecah
-        { wch: 30 }, // Keterangan
+        { wch: 30 }, // Reporter Name
         { wch: 12 }  // Status
       ]
       ws['!cols'] = colWidths
@@ -571,7 +627,7 @@ function Dashboard() {
       const photoHeight = (pageHeight - 5 * margin) / 4 // 4 rows per page = 12 photos per page
 
       // Header Background
-      doc.setFillColor(59, 130, 246) // Blue color like system theme
+      doc.setFillColor(30, 41, 59) // slate-800
       doc.rect(0, 0, pageWidth, 35, 'F')
 
       // Header - Company Name
@@ -654,7 +710,7 @@ function Dashboard() {
         // Check if we need a new page before adding date header
         if (photoIndex > 0 && photoIndex % 12 === 0) {
           // Add footer to previous page
-          doc.setFillColor(59, 130, 246)
+          doc.setFillColor(30, 41, 59) // slate-800
           doc.rect(0, pageHeight - 15, pageWidth, 15, 'F')
           doc.setTextColor(255, 255, 255)
           doc.setFontSize(8)
@@ -668,7 +724,7 @@ function Dashboard() {
           pageNumber++
 
           // Header for new page
-          doc.setFillColor(59, 130, 246)
+          doc.setFillColor(30, 41, 59) // slate-800
           doc.rect(0, 0, pageWidth, 35, 'F')
           doc.setTextColor(255, 255, 255)
           doc.setFontSize(16)
@@ -700,7 +756,7 @@ function Dashboard() {
           // Check if we need a new page before adding photo
           if (photoIndex > 0 && photoIndex % 12 === 0) {
             // Add footer to previous page
-            doc.setFillColor(59, 130, 246)
+            doc.setFillColor(30, 41, 59) // slate-800
             doc.rect(0, pageHeight - 15, pageWidth, 15, 'F')
             doc.setTextColor(255, 255, 255)
             doc.setFontSize(8)
@@ -714,7 +770,7 @@ function Dashboard() {
             pageNumber++
 
             // Header for new page
-            doc.setFillColor(59, 130, 246)
+            doc.setFillColor(30, 41, 59) // slate-800
             doc.rect(0, 0, pageWidth, 35, 'F')
             doc.setTextColor(255, 255, 255)
             doc.setFontSize(16)
@@ -776,7 +832,7 @@ function Dashboard() {
       }
 
       // Add footer to last page
-      doc.setFillColor(59, 130, 246)
+      doc.setFillColor(30, 41, 59) // slate-800
       doc.rect(0, pageHeight - 15, pageWidth, 15, 'F')
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(10)
@@ -797,7 +853,6 @@ function Dashboard() {
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-300'
       case 'investigating': return 'bg-blue-100 text-blue-800 border-blue-300'
       case 'resolved': return 'bg-green-100 text-green-800 border-green-300'
       default: return 'bg-gray-100 text-gray-800 border-gray-300'
@@ -966,13 +1021,25 @@ function Dashboard() {
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200 touch-manipulation">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-slate-600 text-sm">Status Pending</p>
-                <p className="text-2xl sm:text-3xl font-bold text-red-600 mt-1">
-                  {incidents.filter(inc => inc.status === 'pending').length}
+                <p className="text-slate-600 text-sm">Pelapor Terbanyak</p>
+                <p className="text-lg sm:text-xl font-bold text-purple-600 mt-1">
+                  {(() => {
+                    const reporterCount = {};
+                    incidents.forEach(inc => {
+                      const reporter = inc.description || inc.keterangan || 'Unknown';
+                      reporterCount[reporter] = (reporterCount[reporter] || 0) + 1;
+                    });
+                    const mostReporter = Object.keys(reporterCount).reduce((a, b) => 
+                      reporterCount[a] > reporterCount[b] ? a : b, 'Unknown'
+                    );
+                    return mostReporter !== 'Unknown' && reporterCount[mostReporter] > 0 
+                      ? `${mostReporter} (${reporterCount[mostReporter]})`
+                      : '-';
+                  })()}
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-red-100 rounded-lg flex-shrink-0">
-                <User className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+              <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
               </div>
             </div>
           </div>
@@ -1159,7 +1226,7 @@ function Dashboard() {
                       value={editingIncident.shading || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, shading: e.target.value})}
                       className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
-                      placeholder="Reporter name"
+                      placeholder="Masukan Shading"
                     />
                   </div>
                   <div>
@@ -1197,14 +1264,19 @@ function Dashboard() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       Merk *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       required
                       value={editingIncident.merk || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, merk: e.target.value})}
                       className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
-                      placeholder="Masukkan merk"
-                    />
+                    >
+                      <option value="">Pilih merk</option>
+                      {ensureOption(MERK_OPTIONS, editingIncident.merk).map((merk) => (
+                        <option key={merk} value={merk}>
+                          {merk}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1254,15 +1326,21 @@ function Dashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Keterangan Tambahan
+                    Reporter Name *
                   </label>
-                  <textarea
+                  <select
+                    required
                     value={editingIncident.description || ''}
                     onChange={(e) => setEditingIncident({...editingIncident, description: e.target.value})}
-                    rows="3"
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
-                    placeholder="Keterangan tambahan (opsional)..."
-                  />
+                  >
+                    <option value="">Pilih nama reporter</option>
+                    {ensureOption(REPORTER_OPTIONS, editingIncident.description).map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1306,7 +1384,6 @@ function Dashboard() {
                     type="button"
                     onClick={() => setShowEditModal(false)}
                     className="bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 transition-colors touch-manipulation text-base"
-                    type="button"
                   >
                     Cancel
                   </button>
@@ -1376,7 +1453,7 @@ function Dashboard() {
                     value={formData.reporter}
                     onChange={(e) => setFormData({...formData, reporter: e.target.value})}
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
-                    placeholder="Reporter name"
+                    placeholder="Masukan Shading"
                   />
                 </div>
                 <div>
@@ -1414,14 +1491,19 @@ function Dashboard() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Merk *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={formData.merk}
                     onChange={(e) => setFormData({...formData, merk: e.target.value})}
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
-                    placeholder="Masukkan merk"
-                  />
+                  >
+                    <option value="">Pilih merk</option>
+                    {MERK_OPTIONS.map((merk) => (
+                      <option key={merk} value={merk}>
+                        {merk}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1471,15 +1553,21 @@ function Dashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Keterangan Tambahan
+                  Reporter Name *
                 </label>
-                <textarea
+                <select
+                  required
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows="3"
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
-                  placeholder="Keterangan tambahan (opsional)..."
-                />
+                >
+                  <option value="">Pilih nama reporter</option>
+                  {REPORTER_OPTIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1605,8 +1693,10 @@ function Dashboard() {
                         </div>
                       </div>
                     </div>
-                    {incident.description && (
-                      <p className="text-slate-700 mb-3 text-center sm:text-left"><span className="font-medium">Keterangan:</span> {incident.description}</p>
+                    {(incident.description || incident.keterangan) && (
+                      <p className="text-slate-700 mb-3 text-center sm:text-left">
+                        <span className="font-medium">Reporter Name:</span> {incident.description || incident.keterangan}
+                      </p>
                     )}
                     <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
                       <label className="text-sm text-slate-600">Status:</label>
@@ -1616,7 +1706,6 @@ function Dashboard() {
                         className={`px-4 py-2 rounded-full text-sm font-medium border touch-manipulation text-base ${getStatusColor(incident.status)}`}
                         inputMode="text"
                       >
-                        <option value="pending">Pending</option>
                         <option value="investigating">Investigating</option>
                         <option value="resolved">Resolved</option>
                       </select>
