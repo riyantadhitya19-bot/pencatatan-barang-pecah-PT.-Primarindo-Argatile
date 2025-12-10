@@ -4,11 +4,40 @@ import { AlertCircle, Plus, Trash2, Search, Calendar, User, Package, Upload, Ima
 import { supabase } from './supabaseClient'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import AnalyticsPage from './AnalyticsPage'
+import Login from './Login'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 
-function Dashboard() {
+const MERK_OPTIONS = [
+  'OCTAGON',
+  'VALENCIA',
+  'ARLES',
+  'MANDALAY',
+  'PRIMATILES',
+  'ARGA INDOTILE',
+  'VANDAN',
+  'VENETAS',
+  'YUKA',
+  'MAGNETO',
+  'MIXED RIMPIL'
+]
+
+const REPORTER_OPTIONS = [
+  'ASEP PEDIANTO',
+  'ENDANG KURNIAWAN',
+  'JAHUDI',
+  'RAMIN'
+]
+
+const ensureOption = (options, value) => {
+  if (value && !options.includes(value)) {
+    return [...options, value]
+  }
+  return options
+}
+
+function Dashboard({ onLogout }) {
   const [incidents, setIncidents] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -39,8 +68,7 @@ function Dashboard() {
     jenisPecah: '',
     description: '',
     photoFile: null,
-    photoUrl: '',
-    status: 'pending'
+    photoUrl: ''
   })
 
   // Fetch incidents from Supabase on mount
@@ -118,8 +146,7 @@ function Dashboard() {
           quantity: parseInt(formData.quantity) || 0,
           jenis_pecah: formData.jenisPecah,
           description: formData.description,
-          photo_url: photoUrl,
-          status: 'pending'
+          photo_url: photoUrl
         }])
         .select()
       
@@ -141,8 +168,7 @@ function Dashboard() {
         jenisPecah: '',
         description: '',
         photoFile: null,
-        photoUrl: '',
-        status: 'pending'
+        photoUrl: ''
       })
       
       // Reset file input
@@ -278,7 +304,8 @@ function Dashboard() {
     (inc.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inc.shading || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inc.sizing || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (inc.merk || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (inc.merk || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (inc.description || inc.keterangan || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // Pagination calculations
@@ -334,7 +361,7 @@ function Dashboard() {
   }
 
   // Export to PDF
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     setExporting(true)
     try {
       const filteredData = filterDataByDate(incidents, exportDateRange.startDate, exportDateRange.endDate)
@@ -346,121 +373,197 @@ function Dashboard() {
       }
 
       const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.width
+      const pageHeight = doc.internal.pageSize.height
+      const margin = 14
 
-      // Header Background
-      doc.setFillColor(59, 130, 246) // Blue color like system theme
-      doc.rect(0, 0, doc.internal.pageSize.width, 50, 'F')
+      // Header dengan border
+      doc.setLineWidth(0.5)
+      doc.rect(10, 10, pageWidth - 20, 25)
+      
+      // Logo area - Load logo sebagai base64
+      try {
+        const loadImage = (url) => {
+          return new Promise((resolve, reject) => {
+            const img = new Image()
+            img.crossOrigin = 'Anonymous'
+            img.onload = () => resolve(img)
+            img.onerror = () => reject(new Error('Failed to load image'))
+            img.src = url
+          })
+        }
 
-      // Header - Company Name
-      doc.setFontSize(20)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(255, 255, 255) // White text
-      const companyText = 'PT. PRIMARINDO ARGATILE'
-      const companyWidth = doc.getTextWidth(companyText)
-      doc.text(companyText, (doc.internal.pageSize.width - companyWidth) / 2, 20)
-
-      // Title
+        try {
+          // Coba load logo PNG
+          const logoImg = await loadImage('/logo-perusahaan.png')
+          doc.addImage(logoImg, 'PNG', 15, 13, 20, 19)
+        } catch (pngError) {
+          try {
+            // Jika PNG gagal, coba JPG
+            const logoImg = await loadImage('/logo-perusahaan.jpg')
+            doc.addImage(logoImg, 'JPEG', 15, 13, 20, 19)
+          } catch (jpgError) {
+            // Jika semua gagal, tampilkan kotak abu-abu
+            doc.setFillColor(200, 200, 200)
+            doc.rect(15, 13, 20, 19, 'F')
+          }
+        }
+      } catch (e) {
+        // Fallback kotak abu-abu jika logo tidak ada
+        doc.setFillColor(200, 200, 200)
+        doc.rect(15, 13, 20, 19, 'F')
+      }
+      
+      // Company name - RATA TENGAH
       doc.setFontSize(16)
       doc.setFont('helvetica', 'bold')
-      const titleText = 'Berita Acara Keramik Pecah'
-      const titleWidth = doc.getTextWidth(titleText)
-      doc.text(titleText, (doc.internal.pageSize.width - titleWidth) / 2, 28)
-
-      // BA Number
-      doc.setFontSize(12)
+      doc.text('PT. PRIMARINDO ARGATILE', pageWidth / 2, 20, { align: 'center' })
+      
+      // Tagline - GABUNG DAN RATA TENGAH
+      doc.setFontSize(9)
+      const tagline = 'PRIMATILES  HIGH QUALITY CERAMIC TILES'
       doc.setFont('helvetica', 'normal')
-      const currentMonth = new Date().getMonth() + 1
-      const currentYear = new Date().getFullYear()
-      const monthRoman = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][currentMonth]
-      const baNumber = `${exportDateRange.customNumber}/PA/SHIPP/BAKP/${monthRoman}/${currentYear}`
-      const baText = `Nomor: ${baNumber}`
-      const baWidth = doc.getTextWidth(baText)
-      doc.text(baText, (doc.internal.pageSize.width - baWidth) / 2, 38)
-
-      // Reset text color for body content
-      doc.setTextColor(0, 0, 0)
-
-      // Period info
-      doc.setFontSize(10)
-      doc.text(`Periode: ${new Date(exportDateRange.startDate).toLocaleDateString('id-ID')} - ${new Date(exportDateRange.endDate).toLocaleDateString('id-ID')}`, 20, 56)
-
-      // Total Quantity
-      const totalQuantity = filteredData.reduce((sum, inc) => sum + (inc.quantity || 0), 0)
-      doc.setFontSize(10)
+      const primatilesPart = 'PRIMATILES  '
+      const highQualityPart = 'HIGH QUALITY CERAMIC TILES'
+      const primatileWidth = doc.getTextWidth(primatilesPart)
+      const totalWidth = doc.getTextWidth(primatilesPart) + doc.getTextWidth(highQualityPart)
+      const startX = (pageWidth - totalWidth) / 2
+      
+      doc.text(primatilesPart, startX, 26)
       doc.setFont('helvetica', 'bold')
-      doc.text(`Total Quantity: ${totalQuantity} Box`, 20, 64)
+      doc.text(highQualityPart, startX + primatileWidth, 26)
 
-      // Table data
+      // Berita Acara Title - RATA TENGAH
+      doc.setLineWidth(0.5)
+      doc.rect(10, 37, pageWidth - 20, 13)
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.text('BERITA ACARA KERAMIK PECAH', pageWidth / 2, 44, { align: 'center' })
+      
+      // Nomor - FORMAT SESUAI TANGGAL DAN BULAN
+      const startDate = exportDateRange.startDate ? new Date(exportDateRange.startDate) : new Date()
+      const currentMonth = startDate.getMonth() + 1
+      const currentYear = startDate.getFullYear()
+      const monthRoman = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][currentMonth]
+      const baNumber = `NO.${exportDateRange.customNumber}/PA/SHIP/BAKP/${monthRoman}/${currentYear}`
+      
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.text(baNumber, pageWidth / 2, 48, { align: 'center' })
+
+      // Tanggal kejadian
+      const endDate = exportDateRange.endDate ? new Date(exportDateRange.endDate) : startDate
+      const startDateText = startDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' })
+      
+      doc.setFontSize(9)
+      doc.text(`Pada Tanggal : ${startDateText}`, margin, 58)
+      doc.text('Terdapat Barang Pecah dengan rincian sebagai berikut :', margin, 63)
+
+      // Table data dengan format baru
       const tableData = filteredData.map((inc, index) => [
         index + 1,
-        inc.item_name,
-        new Date(inc.date).toLocaleDateString('id-ID'),
-        inc.shading,
-        inc.sizing,
-        inc.ukuran,
-        inc.merk,
-        inc.kualitas,
-        inc.quantity,
-        inc.jenis_pecah,
-        inc.description || '-'
+        inc.item_name || '-',
+        inc.shading || '-',
+        inc.sizing || '-',
+        inc.kualitas || '-',
+        inc.ukuran || '-',
+        inc.merk || '-',
+        inc.quantity || 0,
+        inc.jenis_pecah || '-'
       ])
 
       autoTable(doc, {
-        head: [['No', 'Nama Motif', 'Tanggal', 'Shading', 'Sizing', 'Ukuran', 'Merk', 'Kualitas', 'Quantity', 'Jenis Pecah', 'Keterangan']],
+        head: [['No.', 'Type', 'Shad', 'Size', 'Quality', 'Ukuran', 'Brand', 'Qty', 'Keterangan']],
         body: tableData,
-        startY: 72,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [239, 68, 68] },
-        alternateRowStyles: { fillColor: [249, 250, 251] }
+        startY: 68,
+        margin: { left: margin, right: margin },
+        styles: { 
+          fontSize: 8,
+          cellPadding: 2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.3
+        },
+        headStyles: { 
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          halign: 'center',
+          lineWidth: 0.3
+        },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 10 },
+          1: { cellWidth: 35 },
+          2: { halign: 'center', cellWidth: 15 },
+          3: { halign: 'center', cellWidth: 15 },
+          4: { halign: 'center', cellWidth: 18 },
+          5: { halign: 'center', cellWidth: 18 },
+          6: { halign: 'center', cellWidth: 25 },
+          7: { halign: 'center', cellWidth: 15 },
+          8: { cellWidth: 30 }
+        },
+        theme: 'grid'
       })
 
-      // Signature areas - positioned just above footer
-      const pageHeight = doc.internal.pageSize.height
-      const signatureY = pageHeight - 70 // Position above footer (moved down slightly)
+      const tableEndY = doc.lastAutoTable.finalY || 68
 
+      // Total quantity di bawah tabel - RATA KANAN
+      const totalQuantity = filteredData.reduce((sum, inc) => sum + (inc.quantity || 0), 0)
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Total', pageWidth - 50, tableEndY + 8)
+      doc.text(`${totalQuantity}  Box`, pageWidth - margin, tableEndY + 8, { align: 'right' })
+
+      // Closing text
+      const closingY = tableEndY + 18
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      const closingText = 'Adapun Barang Pecah tersebut disebabkan karna Operasional Perapihan Gudang dan Loading.'
+      doc.text(closingText, margin, closingY)
+      const closingText2 = 'Demikian Berita Acara ini dengan sebenar- benarnya untuk dapat digunakan sebagaimana mestinya'
+      doc.text(closingText2, margin, closingY + 5)
+
+      // SIGNATURE SECTION - POSISI DI BAWAH DEKAT FOOTER
+      // Hitung posisi signature agar dekat dengan footer
+      const footerY = pageHeight - 15
+      const signatureY = footerY - 50  // 50mm di atas footer
+      
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
+      
+      // Dibuat Oleh - Kiri
+      doc.text('Dibuat Oleh,', 30, signatureY)
+      doc.line(25, signatureY + 20, 70, signatureY + 20)
+      doc.text('Riyant Adhitya Adji', 30, signatureY + 26)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Shipping', 30, signatureY + 31)
+      
+      // Mengetahui - Tengah
+      doc.setFont('helvetica', 'normal')
+      doc.text('Mengetahui,', 85, signatureY)
+      doc.line(80, signatureY + 20, 135, signatureY + 20)
+      doc.text('Arde Sanma', 85, signatureY + 26)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Kasie Shipping & Marketing', 85, signatureY + 31)
+      
+      // Menyetujui - Kanan
+      doc.setFont('helvetica', 'normal')
+      doc.text('Menyetujui,', 155, signatureY)
+      doc.line(150, signatureY + 20, 195, signatureY + 20)
+      doc.text('Agus Priyanto', 155, signatureY + 26)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Manager Produksi', 155, signatureY + 31)
 
-      // Calculate column positions for center alignment
-      const pageWidth = doc.internal.pageSize.width
-      const colWidth = pageWidth / 3
-      const leftCol = colWidth / 2 - 25
-      const middleCol = colWidth + colWidth / 2 - 25
-      const rightCol = 2 * colWidth + colWidth / 2 - 25
+      // Footer dengan border - DI PALING BAWAH
+      doc.setLineWidth(0.5)
+      doc.rect(10, footerY - 5, pageWidth - 20, 10)
+      
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(0, 0, 0)
+      const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kecamatan Kibin - Kabupaten Serang'
+      doc.text(factoryText, pageWidth / 2, footerY, { align: 'center' })
 
-      // Dibuat Oleh - Left column
-      doc.text('Dibuat Oleh,', leftCol, signatureY)
-      doc.text('Shipping', leftCol, signatureY + 30)
-      doc.line(leftCol, signatureY + 23, leftCol + 50, signatureY + 23)
-
-      // Mengetahui - Middle column
-      doc.text('Mengetahui,', middleCol, signatureY)
-      doc.text('Kasie Marketing & Shipping', middleCol, signatureY + 30)
-      doc.line(middleCol, signatureY + 23, middleCol + 50, signatureY + 23)
-
-      // Menyetujui - Right column
-      doc.text('Menyetujui,', rightCol, signatureY)
-      doc.text('Manager Produksi', rightCol, signatureY + 30)
-      doc.line(rightCol, signatureY + 23, rightCol + 50, signatureY + 23)
-
-      // Footer Background
-      const pageCount = doc.internal.getNumberOfPages()
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i)
-
-        // Footer background
-        doc.setFillColor(59, 130, 246) // Blue color like system theme
-        doc.rect(0, doc.internal.pageSize.height - 20, doc.internal.pageSize.width, 20, 'F')
-
-        // Footer text
-        doc.setFontSize(11)
-        doc.setTextColor(255, 255, 255) // White text 
-        const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kecamatan Kibin - Kabupaten Serang'
-        const factoryWidth = doc.getTextWidth(factoryText)
-        doc.text(factoryText, (doc.internal.pageSize.width - factoryWidth) / 2, doc.internal.pageSize.height - 10)
-      }
-
-      doc.save(`${baNumber}.pdf`)
+      doc.save(`Berita-Acara-${baNumber.replace(/\//g, '-')}.pdf`)
       setShowExportModal(false)
       alert('PDF berhasil diexport!')
     } catch (error) {
@@ -495,7 +598,7 @@ function Dashboard() {
         'Kualitas': inc.kualitas,
         'Quantity': inc.quantity,
         'Jenis Pecah': inc.jenis_pecah,
-        'Keterangan': inc.description || '-',
+        'Reporter Name': inc.description || inc.keterangan || '-',
         'Status': inc.status
       }))
 
@@ -515,7 +618,7 @@ function Dashboard() {
         { wch: 10 }, // Kualitas
         { wch: 10 }, // Quantity
         { wch: 15 }, // Jenis Pecah
-        { wch: 30 }, // Keterangan
+        { wch: 30 }, // Reporter Name
         { wch: 12 }  // Status
       ]
       ws['!cols'] = colWidths
@@ -570,44 +673,81 @@ function Dashboard() {
       const photoWidth = (pageWidth - 4 * margin) / 3 // 3 photos per row
       const photoHeight = (pageHeight - 5 * margin) / 4 // 4 rows per page = 12 photos per page
 
-      // Header Background
-      doc.setFillColor(59, 130, 246) // Blue color like system theme
-      doc.rect(0, 0, pageWidth, 35, 'F')
+      // HEADER - SAMA DENGAN BERITA ACARA
+      doc.setLineWidth(0.5)
+      doc.rect(10, 10, pageWidth - 20, 25)
+      
+      // Logo area
+      try {
+        const loadImage = (url) => {
+          return new Promise((resolve, reject) => {
+            const img = new Image()
+            img.crossOrigin = 'Anonymous'
+            img.onload = () => resolve(img)
+            img.onerror = () => reject(new Error('Failed to load image'))
+            img.src = url
+          })
+        }
 
-      // Header - Company Name
+        try {
+          const logoImg = await loadImage('/logo-perusahaan.png')
+          doc.addImage(logoImg, 'PNG', 15, 13, 20, 19)
+        } catch (pngError) {
+          try {
+            const logoImg = await loadImage('/logo-perusahaan.jpg')
+            doc.addImage(logoImg, 'JPEG', 15, 13, 20, 19)
+          } catch (jpgError) {
+            doc.setFillColor(200, 200, 200)
+            doc.rect(15, 13, 20, 19, 'F')
+          }
+        }
+      } catch (e) {
+        doc.setFillColor(200, 200, 200)
+        doc.rect(15, 13, 20, 19, 'F')
+      }
+      
+      // Company name - RATA TENGAH
       doc.setFontSize(16)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(255, 255, 255) // White text
-      const companyText = 'PT. PRIMARINDO ARGATILE'
-      const companyWidth = doc.getTextWidth(companyText)
-      doc.text(companyText, (pageWidth - companyWidth) / 2, 15)
-
-      // Title
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      const titleText = 'DOKUMENTASI FOTO BARANG PECAH'
-      const titleWidth = doc.getTextWidth(titleText)
-      doc.text(titleText, (pageWidth - titleWidth) / 2, 23)
-
-      // BA Number
-      doc.setFontSize(10)
+      doc.text('PT. PRIMARINDO ARGATILE', pageWidth / 2, 20, { align: 'center' })
+      
+      // Tagline - GABUNG DAN RATA TENGAH
+      doc.setFontSize(9)
+      const primatilesPart = 'PRIMATILES  '
+      const highQualityPart = 'HIGH QUALITY CERAMIC TILES'
+      const primatileWidth = doc.getTextWidth(primatilesPart)
+      const totalWidth = doc.getTextWidth(primatilesPart) + doc.getTextWidth(highQualityPart)
+      const startX = (pageWidth - totalWidth) / 2
+      
       doc.setFont('helvetica', 'normal')
-      const currentMonth = new Date().getMonth() + 1
-      const currentYear = new Date().getFullYear()
+      doc.text(primatilesPart, startX, 26)
+      doc.setFont('helvetica', 'bold')
+      doc.text(highQualityPart, startX + primatileWidth, 26)
+
+      // Title dengan border - SAMA DENGAN BERITA ACARA
+      doc.setLineWidth(0.5)
+      doc.rect(10, 37, pageWidth - 20, 13)
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.text('DOKUMENTASI FOTO BARANG PECAH', pageWidth / 2, 44, { align: 'center' })
+      
+      // Nomor - FORMAT SAMA
+      const startDate = exportDateRange.startDate ? new Date(exportDateRange.startDate) : new Date()
+      const currentMonth = startDate.getMonth() + 1
+      const currentYear = startDate.getFullYear()
       const monthRoman = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][currentMonth]
-      const baNumber = `${exportDateRange.customNumber}/PA/SHIPP/BAKP/${monthRoman}/${currentYear}`
-      const baText = `Nomor: ${baNumber}`
-      const baWidth = doc.getTextWidth(baText)
-      doc.text(baText, (pageWidth - baWidth) / 2, 30)
+      const baNumber = `NO.${exportDateRange.customNumber}/PA/SHIP/BAKP/${monthRoman}/${currentYear}`
+      
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.text(baNumber, pageWidth / 2, 48, { align: 'center' })
 
-      // Reset text color for body content
-      doc.setTextColor(0, 0, 0)
+      // Periode
+      const startDateText = startDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' })
+      doc.setFontSize(9)
+      doc.text(`Periode: ${startDateText}`, 14, 58)
 
-      // Period info
-      doc.setFontSize(10)
-      doc.text(`Periode: ${new Date(exportDateRange.startDate).toLocaleDateString('id-ID')} - ${new Date(exportDateRange.endDate).toLocaleDateString('id-ID')}`, margin, 40)
-
-      let yPosition = 45
+      let yPosition = 65
       let photoIndex = 0
       let pageNumber = 1
 
@@ -653,40 +793,85 @@ function Dashboard() {
 
         // Check if we need a new page before adding date header
         if (photoIndex > 0 && photoIndex % 12 === 0) {
-          // Add footer to previous page
-          doc.setFillColor(59, 130, 246)
-          doc.rect(0, pageHeight - 15, pageWidth, 15, 'F')
-          doc.setTextColor(255, 255, 255)
+          // Add footer - SAMA DENGAN BERITA ACARA
+          const footerY = pageHeight - 15
+          doc.setLineWidth(0.5)
+          doc.rect(10, footerY - 5, pageWidth - 20, 10)
+          
           doc.setFontSize(8)
-          const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kec. Kibin - Kab. Serang'
-          const factoryWidth = doc.getTextWidth(factoryText)
-          doc.text(factoryText, (pageWidth - factoryWidth) / 2, pageHeight - 8)
-          doc.text(`Halaman ${pageNumber}`, pageWidth - margin, pageHeight - 8)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(0, 0, 0)
+          const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kecamatan Kibin - Kabupaten Serang'
+          doc.text(factoryText, pageWidth / 2, footerY, { align: 'center' })
 
           // New page
           doc.addPage()
           pageNumber++
 
-          // Header for new page
-          doc.setFillColor(59, 130, 246)
-          doc.rect(0, 0, pageWidth, 35, 'F')
-          doc.setTextColor(255, 255, 255)
+          // Header untuk halaman baru - SAMA DENGAN BERITA ACARA
+          doc.setLineWidth(0.5)
+          doc.rect(10, 10, pageWidth - 20, 25)
+          
+          // Logo
+          try {
+            const loadImage = (url) => {
+              return new Promise((resolve, reject) => {
+                const img = new Image()
+                img.crossOrigin = 'Anonymous'
+                img.onload = () => resolve(img)
+                img.onerror = () => reject(new Error('Failed to load image'))
+                img.src = url
+              })
+            }
+
+            try {
+              const logoImg = await loadImage('/logo-perusahaan.png')
+              doc.addImage(logoImg, 'PNG', 15, 13, 20, 19)
+            } catch (pngError) {
+              try {
+                const logoImg = await loadImage('/logo-perusahaan.jpg')
+                doc.addImage(logoImg, 'JPEG', 15, 13, 20, 19)
+              } catch (jpgError) {
+                doc.setFillColor(200, 200, 200)
+                doc.rect(15, 13, 20, 19, 'F')
+              }
+            }
+          } catch (e) {
+            doc.setFillColor(200, 200, 200)
+            doc.rect(15, 13, 20, 19, 'F')
+          }
+          
           doc.setFontSize(16)
           doc.setFont('helvetica', 'bold')
-          doc.text(companyText, (pageWidth - companyWidth) / 2, 15)
-          doc.setFontSize(12)
-          doc.text(titleText, (pageWidth - titleWidth) / 2, 23)
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'normal')
-          const baNumberNew = `${exportDateRange.customNumber}/PA/SHIPP/BAKP/${monthRoman}/${currentYear}`
-          const baTextNew = `Nomor: ${baNumberNew}`
-          const baWidthNew = doc.getTextWidth(baTextNew)
-          doc.text(baTextNew, (pageWidth - baWidthNew) / 2, 30)
           doc.setTextColor(0, 0, 0)
-          doc.setFontSize(10)
-          doc.text(`Periode: ${new Date(exportDateRange.startDate).toLocaleDateString('id-ID')} - ${new Date(exportDateRange.endDate).toLocaleDateString('id-ID')}`, margin, 40)
+          doc.text('PT. PRIMARINDO ARGATILE', pageWidth / 2, 20, { align: 'center' })
+          
+          doc.setFontSize(9)
+          const primatilesPart = 'PRIMATILES  '
+          const highQualityPart = 'HIGH QUALITY CERAMIC TILES'
+          const primatileWidth = doc.getTextWidth(primatilesPart)
+          const totalWidth = doc.getTextWidth(primatilesPart) + doc.getTextWidth(highQualityPart)
+          const startX = (pageWidth - totalWidth) / 2
+          
+          doc.setFont('helvetica', 'normal')
+          doc.text(primatilesPart, startX, 26)
+          doc.setFont('helvetica', 'bold')
+          doc.text(highQualityPart, startX + primatileWidth, 26)
+          
+          doc.setLineWidth(0.5)
+          doc.rect(10, 37, pageWidth - 20, 13)
+          doc.setFontSize(14)
+          doc.setFont('helvetica', 'bold')
+          doc.text('DOKUMENTASI FOTO BARANG PECAH', pageWidth / 2, 44, { align: 'center' })
+          
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'normal')
+          doc.text(baNumber, pageWidth / 2, 48, { align: 'center' })
+          
+          const startDateText = startDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' })
+          doc.text(`Periode: ${startDateText}`, 14, 58)
 
-          yPosition = 50
+          yPosition = 65
         }
 
         // Date header
@@ -699,40 +884,85 @@ function Dashboard() {
         for (const inc of datePhotos) {
           // Check if we need a new page before adding photo
           if (photoIndex > 0 && photoIndex % 12 === 0) {
-            // Add footer to previous page
-            doc.setFillColor(59, 130, 246)
-            doc.rect(0, pageHeight - 15, pageWidth, 15, 'F')
-            doc.setTextColor(255, 255, 255)
+            // Add footer - SAMA DENGAN BERITA ACARA
+            const footerY = pageHeight - 15
+            doc.setLineWidth(0.5)
+            doc.rect(10, footerY - 5, pageWidth - 20, 10)
+            
             doc.setFontSize(8)
-            const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kec. Kibin - Kab. Serang'
-            const factoryWidth = doc.getTextWidth(factoryText)
-            doc.text(factoryText, (pageWidth - factoryWidth) / 2, pageHeight - 8)
-            doc.text(`Halaman ${pageNumber}`, pageWidth - margin, pageHeight - 8)
+            doc.setFont('helvetica', 'normal')
+            doc.setTextColor(0, 0, 0)
+            const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kecamatan Kibin - Kabupaten Serang'
+            doc.text(factoryText, pageWidth / 2, footerY, { align: 'center' })
 
             // New page
             doc.addPage()
             pageNumber++
 
-            // Header for new page
-            doc.setFillColor(59, 130, 246)
-            doc.rect(0, 0, pageWidth, 35, 'F')
-            doc.setTextColor(255, 255, 255)
+            // Header untuk halaman baru - SAMA DENGAN BERITA ACARA
+            doc.setLineWidth(0.5)
+            doc.rect(10, 10, pageWidth - 20, 25)
+            
+            // Logo
+            try {
+              const loadImage = (url) => {
+                return new Promise((resolve, reject) => {
+                  const img = new Image()
+                  img.crossOrigin = 'Anonymous'
+                  img.onload = () => resolve(img)
+                  img.onerror = () => reject(new Error('Failed to load image'))
+                  img.src = url
+                })
+              }
+
+              try {
+                const logoImg = await loadImage('/logo-perusahaan.png')
+                doc.addImage(logoImg, 'PNG', 15, 13, 20, 19)
+              } catch (pngError) {
+                try {
+                  const logoImg = await loadImage('/logo-perusahaan.jpg')
+                  doc.addImage(logoImg, 'JPEG', 15, 13, 20, 19)
+                } catch (jpgError) {
+                  doc.setFillColor(200, 200, 200)
+                  doc.rect(15, 13, 20, 19, 'F')
+                }
+              }
+            } catch (e) {
+              doc.setFillColor(200, 200, 200)
+              doc.rect(15, 13, 20, 19, 'F')
+            }
+            
             doc.setFontSize(16)
             doc.setFont('helvetica', 'bold')
-            doc.text(companyText, (pageWidth - companyWidth) / 2, 15)
-            doc.setFontSize(12)
-            doc.text(titleText, (pageWidth - titleWidth) / 2, 23)
-            doc.setFontSize(10)
-            doc.setFont('helvetica', 'normal')
-            const baNumberNewPage = `${exportDateRange.customNumber}/PA/SHIPP/BAKP/${monthRoman}/${currentYear}`
-            const baTextNewPage = `Nomor: ${baNumberNewPage}`
-            const baWidthNewPage = doc.getTextWidth(baTextNewPage)
-            doc.text(baTextNewPage, (pageWidth - baWidthNewPage) / 2, 30)
             doc.setTextColor(0, 0, 0)
-            doc.setFontSize(10)
-            doc.text(`Periode: ${new Date(exportDateRange.startDate).toLocaleDateString('id-ID')} - ${new Date(exportDateRange.endDate).toLocaleDateString('id-ID')}`, margin, 40)
+            doc.text('PT. PRIMARINDO ARGATILE', pageWidth / 2, 20, { align: 'center' })
+            
+            doc.setFontSize(9)
+            const primatilesPart = 'PRIMATILES  '
+            const highQualityPart = 'HIGH QUALITY CERAMIC TILES'
+            const primatileWidth = doc.getTextWidth(primatilesPart)
+            const totalWidth = doc.getTextWidth(primatilesPart) + doc.getTextWidth(highQualityPart)
+            const startX = (pageWidth - totalWidth) / 2
+            
+            doc.setFont('helvetica', 'normal')
+            doc.text(primatilesPart, startX, 26)
+            doc.setFont('helvetica', 'bold')
+            doc.text(highQualityPart, startX + primatileWidth, 26)
+            
+            doc.setLineWidth(0.5)
+            doc.rect(10, 37, pageWidth - 20, 13)
+            doc.setFontSize(14)
+            doc.setFont('helvetica', 'bold')
+            doc.text('DOKUMENTASI FOTO BARANG PECAH', pageWidth / 2, 44, { align: 'center' })
+            
+            doc.setFontSize(9)
+            doc.setFont('helvetica', 'normal')
+            doc.text(baNumber, pageWidth / 2, 48, { align: 'center' })
+            
+            const startDateText = startDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' })
+            doc.text(`Periode: ${startDateText}`, 14, 58)
 
-            yPosition = 50
+            yPosition = 65
           }
 
           const x = margin + (photoIndex % 3) * (photoWidth + margin)
@@ -775,16 +1005,18 @@ function Dashboard() {
         }
       }
 
-      // Add footer to last page
-      doc.setFillColor(59, 130, 246)
-      doc.rect(0, pageHeight - 15, pageWidth, 15, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
-      const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kec. Kibin - Kab. Serang'
-      const factoryWidth = doc.getTextWidth(factoryText)
-      doc.text(factoryText, (pageWidth - factoryWidth) / 2, pageHeight - 8)
+      // Add footer to last page - SAMA DENGAN BERITA ACARA
+      const footerY = pageHeight - 15
+      doc.setLineWidth(0.5)
+      doc.rect(10, footerY - 5, pageWidth - 20, 10)
+      
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(0, 0, 0)
+      const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kecamatan Kibin - Kabupaten Serang'
+      doc.text(factoryText, pageWidth / 2, footerY, { align: 'center' })
 
-      doc.save(`dokumentasi-foto-barang-pecah-${exportDateRange.startDate}-to-${exportDateRange.endDate}.pdf`)
+      doc.save(`Dokumentasi-Foto-${baNumber.replace(/\//g, '-')}.pdf`)
       setShowExportModal(false)
       alert('PDF foto berhasil diekspor!')
     } catch (error) {
@@ -797,7 +1029,6 @@ function Dashboard() {
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-300'
       case 'investigating': return 'bg-blue-100 text-blue-800 border-blue-300'
       case 'resolved': return 'bg-green-100 text-green-800 border-green-300'
       default: return 'bg-gray-100 text-gray-800 border-gray-300'
@@ -808,33 +1039,41 @@ function Dashboard() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 shadow-lg">
+      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 animate-gradient shadow-2xl sticky top-0 z-40 border-b-4 border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 animate-fadeIn">
             {/* Logo Perusahaan */}
-            <div className="flex-shrink-0">
-              <img 
-                src="/logo-perusahaan.svg" 
-                alt="Logo PT. Primarindo Argatile" 
-                className="h-16 w-16 object-contain bg-white/10 backdrop-blur-sm rounded-xl p-2 border border-blue-400/30 shadow-lg"
-                onError={(e) => {
-                  // Fallback jika logo tidak ditemukan
-                  e.target.style.display = 'none'
-                  e.target.nextElementSibling.style.display = 'flex'
-                }}
-              />
-              {/* Fallback Icon jika logo tidak ada */}
-              <div className="hidden p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl shadow-lg border border-blue-400/30">
-                <AlertCircle className="w-10 h-10 text-blue-400" />
+            <div className="flex-shrink-0 animate-float">
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-white/30 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+                <div className="relative">
+                  <img 
+                    src="/logo-perusahaan.svg" 
+                    alt="Logo PT. Primarindo Argatile" 
+                    className="h-16 w-16 object-contain bg-white/95 backdrop-blur-sm rounded-2xl p-2 border-2 border-white/40 shadow-2xl"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.nextElementSibling.style.display = 'flex'
+                    }}
+                  />
+                  {/* Fallback Icon jika logo tidak ada */}
+                  <div className="hidden p-3 bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border-2 border-white/40">
+                    <AlertCircle className="w-10 h-10 text-blue-500" />
+                  </div>
+                </div>
               </div>
             </div>
             
             {/* Title & Subtitle */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-white drop-shadow-md">Sistem Pencatatan Barang Pecah PT. Primarindo Argatile</h1>
-              <p className="text-slate-300 text-sm mt-1">Dibuat untuk pencatatan barang pecah yang terintegrasi ke Database</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
+                Sistem Pencatatan Barang Pecah
+              </h1>
+              <p className="text-white/90 text-sm md:text-base mt-1 drop-shadow font-medium">
+                PT. Primarindo Argatile - Database Terintegrasi
+              </p>
             </div>
           </div>
         </div>
@@ -842,39 +1081,48 @@ function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Action Bar */}
-        <div className="mb-6 flex flex-col gap-4 items-stretch">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+        <div className="mb-6 flex flex-col gap-4 items-stretch animate-slideInLeft">
+          <div className="relative w-full group">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 group-hover:text-blue-500 transition-colors" />
             <input
               type="text"
-              placeholder="Search incidents..."
+              placeholder="Cari data keramik pecah..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
+              className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base touch-manipulation shadow-sm hover:border-blue-300 transition-all input-glow bg-white/80 backdrop-blur-sm font-medium"
               inputMode="search"
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               to="/analytics"
-              className="flex items-center justify-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors shadow-sm touch-manipulation"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-green-500/50 touch-manipulation font-semibold btn-glow hover:scale-105 transform"
             >
               <BarChart3 className="w-5 h-5" />
               Lihat Analisis
             </Link>
             <button
               onClick={() => setShowExportModal(true)}
-              className="flex items-center justify-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors shadow-sm touch-manipulation"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-4 rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all shadow-lg hover:shadow-blue-500/50 touch-manipulation font-semibold btn-glow hover:scale-105 transform"
             >
               <Download className="w-5 h-5" />
               Export Data
             </button>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="flex items-center justify-center gap-2 bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors shadow-sm touch-manipulation"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-pink-600 text-white px-6 py-4 rounded-xl hover:from-red-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-red-500/50 touch-manipulation font-semibold btn-glow hover:scale-105 transform"
             >
               <Plus className="w-5 h-5" />
               New Incident
+            </button>
+            <button
+              onClick={onLogout}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-slate-500 to-slate-700 text-white px-6 py-4 rounded-xl hover:from-slate-600 hover:to-slate-800 transition-all shadow-lg hover:shadow-slate-500/50 touch-manipulation font-semibold btn-glow hover:scale-105 transform"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Logout
             </button>
           </div>
         </div>
@@ -904,36 +1152,36 @@ function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-5 animate-scaleIn">
+          <div className="bg-white/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl shadow-lg border-2 border-slate-100 touch-manipulation card-hover group">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-slate-600 text-sm">Total Kejadian</p>
-                <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{incidents.length}</p>
+                <p className="text-slate-600 text-xs font-medium">Total Kejadian</p>
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 group-hover:scale-110 transition-transform">{incidents.length}</p>
               </div>
-              <div className="p-2 sm:p-3 bg-slate-100 rounded-lg flex-shrink-0">
-                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
+              <div className="p-3 bg-gradient-to-br from-slate-500 to-slate-700 rounded-xl flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="bg-white/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl shadow-lg border-2 border-yellow-100 touch-manipulation card-hover group">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-slate-600 text-sm">Total Quantity (All Time)</p>
-                <p className="text-2xl sm:text-3xl font-bold text-yellow-600 mt-1">
+                <p className="text-slate-600 text-xs font-medium">Total Quantity (All Time)</p>
+                <p className="text-xl sm:text-2xl font-bold text-yellow-600 mt-1 group-hover:scale-110 transition-transform">
                   {incidents.reduce((sum, inc) => sum + (inc.quantity || 0), 0)} Box
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg flex-shrink-0">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
+              <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="bg-white/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl shadow-lg border-2 border-blue-100 touch-manipulation card-hover group">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-slate-600 text-sm">Total Quantity (Bulan Ini)</p>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">
+                <p className="text-slate-600 text-xs font-medium">Total Quantity (Bulan Ini)</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600 mt-1 group-hover:scale-110 transition-transform">
                   {incidents.filter(inc => {
                     const incDate = new Date(inc.date);
                     const now = new Date();
@@ -942,37 +1190,49 @@ function Dashboard() {
                   }).reduce((sum, inc) => sum + (inc.quantity || 0), 0)} Box
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="bg-white/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl shadow-lg border-2 border-green-100 touch-manipulation card-hover group">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-slate-600 text-sm">Tanggal Terakhir Kejadian</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
+                <p className="text-slate-600 text-xs font-medium">Tanggal Terakhir Kejadian</p>
+                <p className="text-base sm:text-lg font-bold text-green-600 mt-1 group-hover:scale-110 transition-transform">
                   {incidents.length > 0
                     ? new Date(Math.max(...incidents.map(inc => new Date(inc.date)))).toLocaleDateString('id-ID')
                     : '-'
                   }
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-green-100 rounded-lg flex-shrink-0">
-                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+              <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="bg-white/90 backdrop-blur-sm p-3 sm:p-4 rounded-xl shadow-lg border-2 border-purple-100 touch-manipulation card-hover group">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-slate-600 text-sm">Status Pending</p>
-                <p className="text-2xl sm:text-3xl font-bold text-red-600 mt-1">
-                  {incidents.filter(inc => inc.status === 'pending').length}
+                <p className="text-slate-600 text-xs font-medium">Pelapor Terbanyak</p>
+                <p className="text-sm sm:text-base font-bold text-purple-600 mt-1 group-hover:scale-110 transition-transform">
+                  {(() => {
+                    const reporterCount = {};
+                    incidents.forEach(inc => {
+                      const reporter = inc.description || inc.keterangan || 'Unknown';
+                      reporterCount[reporter] = (reporterCount[reporter] || 0) + 1;
+                    });
+                    const mostReporter = Object.keys(reporterCount).reduce((a, b) => 
+                      reporterCount[a] > reporterCount[b] ? a : b, 'Unknown'
+                    );
+                    return mostReporter !== 'Unknown' && reporterCount[mostReporter] > 0 
+                      ? `${mostReporter} (${reporterCount[mostReporter]})`
+                      : '-';
+                  })()}
                 </p>
               </div>
-              <div className="p-2 sm:p-3 bg-red-100 rounded-lg flex-shrink-0">
-                <User className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
           </div>
@@ -1087,14 +1347,13 @@ function Dashboard() {
                   </button>
                 </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowExportModal(false)}
-                    className="w-full bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 transition-colors touch-manipulation text-base"
-                    type="button"
-                  >
-                    Cancel
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExportModal(false)}
+                  className="w-full bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 transition-colors touch-manipulation text-base"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
@@ -1160,7 +1419,7 @@ function Dashboard() {
                       value={editingIncident.shading || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, shading: e.target.value})}
                       className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
-                      placeholder="Reporter name"
+                      placeholder="Masukan Shading"
                     />
                   </div>
                   <div>
@@ -1198,14 +1457,19 @@ function Dashboard() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       Merk *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       required
                       value={editingIncident.merk || ''}
                       onChange={(e) => setEditingIncident({...editingIncident, merk: e.target.value})}
                       className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
-                      placeholder="Masukkan merk"
-                    />
+                    >
+                      <option value="">Pilih merk</option>
+                      {ensureOption(MERK_OPTIONS, editingIncident.merk).map((merk) => (
+                        <option key={merk} value={merk}>
+                          {merk}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1255,15 +1519,21 @@ function Dashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Keterangan Tambahan
+                    Reporter Name *
                   </label>
-                  <textarea
+                  <select
+                    required
                     value={editingIncident.description || ''}
                     onChange={(e) => setEditingIncident({...editingIncident, description: e.target.value})}
-                    rows="3"
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation"
-                    placeholder="Keterangan tambahan (opsional)..."
-                  />
+                  >
+                    <option value="">Pilih nama reporter</option>
+                    {ensureOption(REPORTER_OPTIONS, editingIncident.description).map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1376,7 +1646,7 @@ function Dashboard() {
                     value={formData.reporter}
                     onChange={(e) => setFormData({...formData, reporter: e.target.value})}
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
-                    placeholder="Reporter name"
+                    placeholder="Masukan Shading"
                   />
                 </div>
                 <div>
@@ -1414,14 +1684,19 @@ function Dashboard() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Merk *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={formData.merk}
                     onChange={(e) => setFormData({...formData, merk: e.target.value})}
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
-                    placeholder="Masukkan merk"
-                  />
+                  >
+                    <option value="">Pilih merk</option>
+                    {MERK_OPTIONS.map((merk) => (
+                      <option key={merk} value={merk}>
+                        {merk}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1471,15 +1746,21 @@ function Dashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Keterangan Tambahan
+                  Reporter Name *
                 </label>
-                <textarea
+                <select
+                  required
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows="3"
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-base touch-manipulation"
-                  placeholder="Keterangan tambahan (opsional)..."
-                />
+                >
+                  <option value="">Pilih nama reporter</option>
+                  {REPORTER_OPTIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1549,12 +1830,12 @@ function Dashboard() {
             </div>
           ) : (
             currentIncidents.map((incident) => (
-              <div key={incident.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-4">
+              <div key={incident.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row items-start gap-3 mb-3">
+                      <div className="flex flex-col sm:flex-row items-start gap-2 mb-2">
                       {incident.photo_url ? (
-                        <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 mx-auto sm:mx-0">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 mx-auto sm:mx-0">
                           <img
                             src={incident.photo_url}
                             alt="Foto barang pecah"
@@ -1567,10 +1848,10 @@ function Dashboard() {
                         </div>
                       )}
                       <div className="flex-1 text-center sm:text-left">
-                        <h3 className="text-lg font-semibold text-slate-900">{incident.item_name}</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-sm">
+                        <h3 className="text-base font-semibold text-slate-900">{incident.item_name}</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-1.5 text-xs">
                           <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
-                            <Calendar className="w-4 h-4" />
+                            <Calendar className="w-3.5 h-3.5" />
                             <span className="font-medium">Tanggal:</span>
                             <span>{new Date(incident.date).toLocaleDateString('id-ID')}</span>
                           </div>
@@ -1592,7 +1873,7 @@ function Dashboard() {
                           </div>
                           <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <span className="font-medium">Kualitas:</span>
-                            <span className="px-2 py-0.5 bg-slate-100 rounded">{incident.kualitas}</span>
+                            <span className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">{incident.kualitas}</span>
                           </div>
                           <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600">
                             <span className="font-medium">Quantity:</span>
@@ -1600,46 +1881,47 @@ function Dashboard() {
                           </div>
                           <div className="flex items-center justify-center sm:justify-start gap-1 text-slate-600 col-span-1 sm:col-span-2">
                             <span className="font-medium">Jenis Pecah:</span>
-                            <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold">{incident.jenis_pecah}</span>
+                            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold text-xs">{incident.jenis_pecah}</span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    {incident.description && (
-                      <p className="text-slate-700 mb-3 text-center sm:text-left"><span className="font-medium">Keterangan:</span> {incident.description}</p>
+                    {(incident.description || incident.keterangan) && (
+                      <p className="text-slate-700 mb-2 text-center sm:text-left text-xs">
+                        <span className="font-medium">Reporter Name:</span> {incident.description || incident.keterangan}
+                      </p>
                     )}
                     <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
-                      <label className="text-sm text-slate-600">Status:</label>
+                      <label className="text-xs text-slate-600">Status:</label>
                       <select
                         value={incident.status}
                         onChange={(e) => handleStatusChange(incident.id, e.target.value)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium border touch-manipulation text-base ${getStatusColor(incident.status)}`}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border touch-manipulation ${getStatusColor(incident.status)}`}
                         inputMode="text"
                       >
-                        <option value="pending">Pending</option>
                         <option value="investigating">Investigating</option>
                         <option value="resolved">Resolved</option>
                       </select>
                     </div>
                   </div>
-                  <div className="flex gap-2 justify-center sm:justify-end">
+                  <div className="flex gap-1.5 justify-center sm:justify-end">
                     <button
                       onClick={() => handleEdit(incident)}
-                      className="p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
                       title="Edit data"
                       type="button"
                     >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
                     <button
                       onClick={() => handleDelete(incident.id)}
-                      className="p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors touch-manipulation"
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors touch-manipulation"
                       title="Hapus data"
                       type="button"
                     >
-                      <Trash2 className="w-6 h-6" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -1709,54 +1991,54 @@ function Dashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 text-white mt-16">
+      <footer className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 animate-gradient text-white mt-16 border-t-4 border-white/20 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Company Info */}
-            <div>
-              <h3 className="text-lg font-bold mb-3 text-blue-400">PT. Primarindo Argatile</h3>
-              <p className="text-slate-300 text-sm leading-relaxed">
+            <div className="animate-fadeIn">
+              <h3 className="text-lg font-bold mb-3 text-white drop-shadow-lg">PT. Primarindo Argatile</h3>
+              <p className="text-white/90 text-sm leading-relaxed drop-shadow">
                 Sistem Pencatatan Barang Pecah untuk manajemen dan tracking insiden barang rusak secara digital.
               </p>
             </div>
             
             {/* Quick Links */}
-            <div>
-              <h3 className="text-lg font-bold mb-3 text-blue-400">Fitur Utama</h3>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+            <div className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+              <h3 className="text-lg font-bold mb-3 text-white drop-shadow-lg">Fitur Utama</h3>
+              <ul className="space-y-2 text-sm text-white/90">
+                <li className="flex items-center gap-2 drop-shadow">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                   Pencatatan Data Lengkap
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                <li className="flex items-center gap-2 drop-shadow">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                   Upload Foto Bukti
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                <li className="flex items-center gap-2 drop-shadow">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                   Database Terintegrasi
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                <li className="flex items-center gap-2 drop-shadow">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
                   Tracking Status Real-time
                 </li>
               </ul>
             </div>
             
             {/* Contact Info */}
-            <div>
-              <h3 className="text-lg font-bold mb-3 text-blue-400">Informasi</h3>
-              <div className="space-y-2 text-sm text-slate-300">
-                <p className="flex items-start gap-2">
-                  <span className="font-semibold text-slate-200">Version:</span>
+            <div className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+              <h3 className="text-lg font-bold mb-3 text-white drop-shadow-lg">Informasi</h3>
+              <div className="space-y-2 text-sm text-white/90">
+                <p className="flex items-start gap-2 drop-shadow">
+                  <span className="font-semibold text-white">Version:</span>
                   <span>1.0.0</span>
                 </p>
-                <p className="flex items-start gap-2">
-                  <span className="font-semibold text-slate-200">Tech:</span>
+                <p className="flex items-start gap-2 drop-shadow">
+                  <span className="font-semibold text-white">Tech:</span>
                   <span>React + Vite + Supabase</span>
                 </p>
-                <p className="flex items-start gap-2">
-                  <span className="font-semibold text-slate-200">Tahun:</span>
+                <p className="flex items-start gap-2 drop-shadow">
+                  <span className="font-semibold text-white">Tahun:</span>
                   <span>{new Date().getFullYear()}</span>
                 </p>
               </div>
@@ -1764,11 +2046,11 @@ function Dashboard() {
           </div>
           
           {/* Copyright */}
-          <div className="border-t border-slate-700 mt-8 pt-6 text-center">
-            <p className="text-sm text-slate-400">
+          <div className="border-t-2 border-white/20 mt-8 pt-6 text-center">
+            <p className="text-sm text-white font-medium drop-shadow">
               © {new Date().getFullYear()} Riyant Adhitya Adji, S.Kom. All rights reserved.
             </p>
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-xs text-white/80 mt-2 drop-shadow">
               Developed With ❤️ for Better Inventory Management
             </p>
           </div>
@@ -1779,10 +2061,24 @@ function Dashboard() {
 }
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  const handleLogin = () => {
+    setIsLoggedIn(true)
+  }
+
+  const handleLogout = () => {
+    setIsLoggedIn(false)
+  }
+
+  if (!isLoggedIn) {
+    return <Login onLogin={handleLogin} />
+  }
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Dashboard onLogout={handleLogout} />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
       </Routes>
     </Router>

@@ -5,6 +5,7 @@ import { supabase } from './supabaseClient'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import autoTable from 'jspdf-autotable'
 
 function AnalyticsPage() {
   const [incidents, setIncidents] = useState([])
@@ -145,176 +146,179 @@ function AnalyticsPage() {
       let yPosition = margin
 
       // Header Background
-      pdf.setFillColor(59, 130, 246) // Blue color like system theme
+      pdf.setFillColor(30, 41, 59) // slate-800
       pdf.rect(0, 0, pageWidth, 50, 'F')
 
       // Header - Company Name
       pdf.setFontSize(20)
       pdf.setFont('helvetica', 'bold')
-      pdf.setTextColor(255, 255, 255) // White text
+      pdf.setTextColor(255, 255, 255)
       const companyText = 'PT. PRIMARINDO ARGATILE'
       const companyWidth = pdf.getTextWidth(companyText)
       pdf.text(companyText, (pageWidth - companyWidth) / 2, 20)
 
-      // Title
+      // Slogan satu baris
+      const highText = 'HIGH'
+      const qcText = 'Quality Ceramic Tiles'
+      pdf.setFontSize(15); pdf.setFont('helvetica', 'bold')
+      const highW = pdf.getTextWidth(highText)
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'normal')
+      const qcW = pdf.getTextWidth(qcText)
+      const totalW = highW + 2 + qcW
+      let startX = (pageWidth - totalW) / 2
+      pdf.setFontSize(15); pdf.setFont('helvetica', 'bold')
+      pdf.text(highText, startX, 28)
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'normal')
+      pdf.text(qcText, startX + highW + 2, 28)
+
+      // Judul utama
+      const titleText = type === 'monthly'
+        ? 'LAPORAN ANALISIS BARANG PECAH - SUMMARY BULAN INI'
+        : 'LAPORAN ANALISIS BARANG PECAH - ALL TIME LENGKAP'
       pdf.setFontSize(16)
       pdf.setFont('helvetica', 'bold')
-      const titleText = 'LAPORAN ANALISIS BARANG PECAH'
       const titleWidth = pdf.getTextWidth(titleText)
-      pdf.text(titleText, (pageWidth - titleWidth) / 2, 28)
+      pdf.text(titleText, (pageWidth - titleWidth) / 2, 36)
 
-      // Date
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'normal')
-      const currentDate = new Date().toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      })
-      const dateText = `Tanggal: ${currentDate}`
-      const dateWidth = pdf.getTextWidth(dateText)
-      pdf.text(dateText, (pageWidth - dateWidth) / 2, 38)
-
-      // Reset text color for body content
+      // Reset text color untuk konten
       pdf.setTextColor(0, 0, 0)
 
-      // Summary Statistics
-      pdf.setFontSize(16)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text('RINGKASAN STATISTIK', margin, 60)
-      yPosition = 75
+      // Informasi periode
+      pdf.setFontSize(10)
+      const periodText = type === 'monthly'
+        ? `Periode: ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
+        : 'Periode: Semua data terekam'
+      pdf.text(periodText, margin, 56)
 
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'normal')
+      // Ringkasan statistik utama
+      const stats = type === 'monthly'
+        ? (() => {
+            const now = new Date()
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+            const monthlyIncidents = incidents.filter(inc => {
+              const incDate = new Date(inc.date)
+              return incDate >= monthStart && incDate <= monthEnd
+            })
+            const monthlyQuantity = monthlyIncidents.reduce((sum, inc) => sum + (inc.quantity || 0), 0)
+            const avgPerIncident = monthlyIncidents.length > 0
+              ? Math.round(monthlyQuantity / monthlyIncidents.length)
+              : 0
+            return [
+              ['Total Kejadian Bulan Ini', monthlyIncidents.length.toString()],
+              ['Total Quantity Bulan Ini', `${monthlyQuantity} Box`],
+              ['Rata-rata per Kejadian', `${avgPerIncident} Box`]
+            ]
+          })()
+        : (() => {
+            const totalIncidents = incidents.length
+            const totalQuantity = incidents.reduce((sum, inc) => sum + (inc.quantity || 0), 0)
+            const avgPerIncident = totalIncidents > 0
+              ? Math.round(totalQuantity / totalIncidents)
+              : 0
+            return [
+              ['Total Kejadian (All Time)', totalIncidents.toString()],
+              ['Total Quantity (All Time)', `${totalQuantity} Box`],
+              ['Rata-rata per Kejadian', `${avgPerIncident} Box`]
+            ]
+          })()
 
-      const totalIncidents = incidents.length
-      const totalQuantity = incidents.reduce((sum, inc) => sum + (inc.quantity || 0), 0)
-      const avgPerIncident = totalIncidents > 0 ? Math.round(totalQuantity / totalIncidents) : 0
-
-      // Current month data
-      const currentMonth = new Date()
-      const currentMonthIncidents = incidents.filter(inc => {
-        const incDate = new Date(inc.date)
-        return incDate.getMonth() === currentMonth.getMonth() &&
-               incDate.getFullYear() === currentMonth.getFullYear()
+      autoTable(pdf, {
+        head: [['Ringkasan', 'Nilai']],
+        body: stats,
+        startY: 64,
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [30, 41, 59], textColor: 255 }
       })
-      const currentMonthQuantity = currentMonthIncidents.reduce((sum, inc) => sum + (inc.quantity || 0), 0)
 
-      const stats = [
-        ['Total Kejadian (All Time)', totalIncidents.toString()],
-        ['Total Quantity (All Time)', `${totalQuantity} Box`],
-        ['Rata-rata per Kejadian', `${avgPerIncident} Box`],
-        ['Kejadian Bulan Ini', currentMonthIncidents.length.toString()],
-        ['Quantity Bulan Ini', `${currentMonthQuantity} Box`]
-      ]
+      yPosition = pdf.lastAutoTable.finalY + 12
 
-      stats.forEach(([label, value]) => {
-        pdf.text(`${label}: ${value}`, margin, yPosition)
-        yPosition += 8
-      })
-
-      yPosition += 10
-
-      // Add Charts Section (simplified representation)
       if (type === 'complete') {
-        pdf.setFontSize(16)
+        const sectionMarginBottom = 12
+
+        // Monthly trend section
+        pdf.setFontSize(14)
         pdf.setFont('helvetica', 'bold')
-        pdf.text('GRAFIK TREN BULANAN', margin, yPosition)
-        yPosition += 15
+        pdf.text('Ringkasan Tren Bulanan', margin, yPosition)
+        yPosition += 6
+
+        const monthlyData = getMonthlyTrendData()
+        if (monthlyData.length > 0) {
+          autoTable(pdf, {
+            startY: yPosition,
+            head: [['Bulan', 'Jumlah Kejadian', 'Total Box']],
+            body: monthlyData.map(item => [item.month, `${item.kejadian} kejadian`, `${item.quantity} Box`]),
+            margin: { left: margin, right: margin },
+            styles: { fontSize: 10, cellPadding: 3 },
+            headStyles: { fillColor: [30, 41, 59], textColor: 255 }
+          })
+          yPosition = pdf.lastAutoTable.finalY + sectionMarginBottom
+        } else {
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text('Data tren bulanan belum tersedia.', margin + 4, yPosition + 2)
+          yPosition += sectionMarginBottom
+        }
+
+        // Category sections rendered as tables
+        const categorySections = [
+          { title: 'Analisis per Merk', data: getCategoryData('merk') },
+          { title: 'Analisis per Kualitas', data: getCategoryData('kualitas') },
+          { title: 'Analisis per Ukuran', data: getCategoryData('ukuran') },
+          { title: 'Analisis per Jenis Pecah', data: getCategoryData('jenis_pecah') }
+        ]
+
+        categorySections.forEach(section => {
+          pdf.setFontSize(14)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text(section.title, margin, yPosition)
+          yPosition += 6
+
+          if (section.data.length === 0) {
+            pdf.setFontSize(10)
+            pdf.setFont('helvetica', 'normal')
+            pdf.text('Data tidak tersedia.', margin + 4, yPosition + 2)
+            yPosition += sectionMarginBottom
+          } else {
+            autoTable(pdf, {
+              startY: yPosition,
+              head: [['No', 'Kategori', 'Total Box', 'Jumlah Kasus']],
+              body: section.data.map((item, index) => [
+                index + 1,
+                item.name,
+                `${item.value} Box`,
+                `${item.count} Kejadian`
+              ]),
+              margin: { left: margin, right: margin },
+              styles: { fontSize: 10, cellPadding: 3 },
+              headStyles: { fillColor: [30, 41, 59], textColor: 255 }
+            })
+            yPosition = pdf.lastAutoTable.finalY + sectionMarginBottom
+          }
+        })
+      } else {
+        pdf.setFontSize(12)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text('Catatan', margin, yPosition)
+        yPosition += 8
 
         pdf.setFontSize(10)
         pdf.setFont('helvetica', 'normal')
-        pdf.text('Grafik tren bulanan menunjukkan pola kejadian barang pecah dalam 6 bulan terakhir.', margin, yPosition)
-        yPosition += 10
-
-        // Monthly trend data
-        const monthlyData = getMonthlyTrendData()
-        monthlyData.forEach((item, index) => {
-          pdf.text(`${item.month}: ${item.kejadian} kejadian, ${item.quantity} box`, margin + 10, yPosition)
-          yPosition += 6
-        })
-
-        yPosition += 10
-
-        // Category Analysis
-        pdf.setFontSize(16)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('ANALISIS PER KATEGORI', margin, yPosition)
-        yPosition += 15
-
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'normal')
-
-        // Merk Analysis
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Per Merk:', margin, yPosition)
-        yPosition += 10
-
-        pdf.setFont('helvetica', 'normal')
-        const merkData = getCategoryData('merk')
-        merkData.slice(0, 5).forEach((item, index) => {
-          const percentage = totalQuantity > 0 ? ((item.value / totalQuantity) * 100).toFixed(1) : 0
-          pdf.text(`${index + 1}. ${item.name}: ${item.value} Box (${percentage}%)`, margin + 10, yPosition)
-          yPosition += 8
-        })
-
-        yPosition += 10
-
-        // Kualitas Analysis
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Per Kualitas:', margin, yPosition)
-        yPosition += 10
-
-        pdf.setFont('helvetica', 'normal')
-        const kualitasData = getCategoryData('kualitas')
-        kualitasData.forEach((item, index) => {
-          pdf.text(`${index + 1}. ${item.name}: ${item.value} Box`, margin + 10, yPosition)
-          yPosition += 8
-        })
-
-        yPosition += 10
-
-        // Ukuran Analysis
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Per Ukuran:', margin, yPosition)
-        yPosition += 10
-
-        pdf.setFont('helvetica', 'normal')
-        const ukuranData = getCategoryData('ukuran')
-        ukuranData.forEach((item, index) => {
-          pdf.text(`${index + 1}. ${item.name}: ${item.value} Box`, margin + 10, yPosition)
-          yPosition += 8
-        })
-
-        yPosition += 10
-
-        // Jenis Pecah Analysis
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Per Jenis Pecah:', margin, yPosition)
-        yPosition += 10
-
-        pdf.setFont('helvetica', 'normal')
-        const jenisPecahData = getCategoryData('jenis_pecah')
-        jenisPecahData.forEach((item, index) => {
-          pdf.text(`${index + 1}. ${item.name}: ${item.value} Box`, margin + 10, yPosition)
-          yPosition += 8
-        })
-
-        yPosition += 20
+        pdf.text('Ringkasan ini memberikan ikhtisar singkat performa barang pecah untuk bulan berjalan.', margin + 4, yPosition)
+        yPosition += 12
       }
 
-      // Footer Background
+      // Footer Background (tetap sama)
       const pageCount = pdf.internal.getNumberOfPages()
       for (let i = 1; i <= pageCount; i++) {
         pdf.setPage(i)
 
-        // Footer background
-        pdf.setFillColor(59, 130, 246) // Blue color like system theme
+        pdf.setFillColor(30, 41, 59)
         pdf.rect(0, pageHeight - 20, pageWidth, 20, 'F')
 
-        // Footer text
         pdf.setFontSize(11)
-        pdf.setTextColor(255, 255, 255) // White text
+        pdf.setTextColor(255, 255, 255)
         const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kec. Kibin - Kab. Serang'
         const factoryWidth = pdf.getTextWidth(factoryText)
         pdf.text(factoryText, (pageWidth - factoryWidth) / 2, pageHeight - 10)
@@ -345,62 +349,69 @@ function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 shadow-lg">
+      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 animate-gradient shadow-2xl sticky top-0 z-40 border-b-4 border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Logo Perusahaan */}
-              <div className="flex-shrink-0">
-                <img
-                  src="/logo-perusahaan.svg"
-                  alt="Logo PT. Primarindo Argatile"
-                  className="h-16 w-16 object-contain bg-white/10 backdrop-blur-sm rounded-xl p-2 border border-blue-400/30 shadow-lg"
-                  onError={(e) => {
-                    // Fallback jika logo tidak ditemukan
-                    e.target.style.display = 'none'
-                    e.target.nextElementSibling.style.display = 'flex'
-                  }}
-                />
-                {/* Fallback Icon jika logo tidak ada */}
-                <div className="hidden p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl shadow-lg border border-blue-400/30">
-                  <X className="w-10 h-10 text-blue-400" />
+          {/* Header content responsive */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 sm:gap-4 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+              {/* Logo */}
+              <div className="flex-shrink-0 mb-2 sm:mb-0 animate-float">
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-white/30 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+                  <div className="relative">
+                    <img
+                      src="/logo-perusahaan.svg"
+                      alt="Logo PT. Primarindo Argatile"
+                      className="h-16 w-16 object-contain bg-white/95 backdrop-blur-sm rounded-2xl p-2 border-2 border-white/40 shadow-2xl"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.nextElementSibling.style.display = 'flex'
+                      }}
+                    />
+                    {/* Fallback Icon jika logo tidak ada */}
+                    <div className="hidden p-3 bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border-2 border-white/40">
+                      <TrendingUp className="w-10 h-10 text-blue-500" />
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* Title & Subtitle */}
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white drop-shadow-md">Analisis Data Barang Pecah</h1>
-                <p className="text-slate-300 text-sm mt-1">Dashboard analisis dan statistik lengkap</p>
+              <div className="flex-1 text-center sm:text-left">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Analisis Data Barang Pecah</h1>
+                <p className="text-white/90 text-sm mt-1 drop-shadow font-medium">Dashboard analisis dan statistik lengkap</p>
               </div>
             </div>
-
-            {/* Navigation */}
-            <Link
-              to="/"
-              className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
-            >
-              <Home className="w-5 h-5" />
-              Kembali ke Dashboard
-            </Link>
+            <div className="w-full sm:w-auto flex justify-center sm:justify-end mt-3 sm:mt-0">
+              <Link
+                to="/"
+                className="flex items-center gap-2 bg-white/95 text-blue-600 px-6 py-3 rounded-xl hover:bg-white transition-all shadow-lg hover:shadow-white/50 w-full sm:w-auto justify-center font-semibold btn-glow hover:scale-105 transform"
+              >
+                <Home className="w-5 h-5" />
+                Kembali ke Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Export Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-blue-100 p-6 mb-8 card-hover animate-slideInLeft">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Export Laporan</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <Download className="w-6 h-6 text-blue-500" />
+                Export Laporan
+              </h2>
               <p className="text-slate-600 text-sm">Unduh laporan analisis dalam format PDF</p>
             </div>
-            <div className="flex gap-3">
+            {/* Export Section button responsive */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
               <button
                 onClick={() => exportToPDF('monthly')}
                 disabled={exporting}
-                className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-5 py-3 rounded-xl hover:from-blue-600 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-blue-500/50 w-full sm:w-auto justify-center font-semibold btn-glow hover:scale-105 transform"
               >
                 <Download className="w-4 h-4" />
                 {exporting ? 'Mengekspor...' : 'Summary Bulan Ini'}
@@ -408,7 +419,7 @@ function AnalyticsPage() {
               <button
                 onClick={() => exportToPDF('complete')}
                 disabled={exporting}
-                className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-xl hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-green-500/50 w-full sm:w-auto justify-center font-semibold btn-glow hover:scale-105 transform"
               >
                 <FileText className="w-4 h-4" />
                 {exporting ? 'Mengekspor...' : 'All Time Lengkap'}
@@ -418,19 +429,23 @@ function AnalyticsPage() {
         </div>
 
         {/* Filter Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-purple-100 p-6 mb-8 card-hover animate-slideInRight">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Filter Data</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <BarChart3 className="w-6 h-6 text-purple-500" />
+                Filter Data
+              </h2>
               <p className="text-slate-600 text-sm">Pilih tahun dan bulan untuk memfilter analisis</p>
             </div>
-            <div className="flex gap-4">
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700 mb-1">Tahun</label>
+            {/* Filter options responsive */}
+            <div className="flex flex-col md:flex-row gap-3 w-full">
+              <div className="flex flex-col w-full md:w-auto">
+                <label className="text-sm font-semibold text-slate-700 mb-1">Tahun</label>
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full font-medium hover:border-blue-300 transition-all input-glow bg-white/80"
                 >
                   <option value="all">Semua Tahun</option>
                   {Array.from(new Set(incidents.map(inc => new Date(inc.date).getFullYear())))
@@ -440,12 +455,12 @@ function AnalyticsPage() {
                     ))}
                 </select>
               </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700 mb-1">Bulan</label>
+              <div className="flex flex-col w-full md:w-auto">
+                <label className="text-sm font-semibold text-slate-700 mb-1">Bulan</label>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
                   disabled={selectedYear === 'all'}
                 >
                   <option value="all">Semua Bulan</option>
@@ -522,7 +537,13 @@ function AnalyticsPage() {
               <div className="flex items-center gap-2 mb-6">
                 <TrendingUp className="w-6 h-6 text-blue-600" />
                 <h2 className="text-2xl font-semibold text-slate-900">
-                  Tren Bulanan {selectedYear !== 'all' ? `(${selectedYear})` : '(6 Bulan Terakhir)'}
+                  Tren Bulanan {
+                    selectedYear !== 'all'
+                      ? selectedMonth !== 'all'
+                        ? `(${new Date(parseInt(selectedYear), parseInt(selectedMonth)).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })})`
+                        : `(${selectedYear})`
+                      : '(6 Bulan Terakhir)'
+                  }
                 </h2>
               </div>
               <ResponsiveContainer width="100%" height={400}>
@@ -632,6 +653,48 @@ function AnalyticsPage() {
               </div>
             </div>
 
+            {/* Analisis per Pelapor */}
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <BarChart3 className="w-6 h-6 text-indigo-600" />
+                <h3 className="text-xl font-semibold text-slate-900">Analisis per Pelapor</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={(() => {
+                  const reporterMap = {};
+                  const filteredIncidents = getFilteredIncidents();
+                  filteredIncidents.forEach(inc => {
+                    const reporter = inc.description || inc.keterangan || 'Unknown';
+                    if (!reporterMap[reporter]) {
+                      reporterMap[reporter] = { name: reporter, value: 0, count: 0 };
+                    }
+                    reporterMap[reporter].value += inc.quantity || 0;
+                    reporterMap[reporter].count += 1;
+                  });
+                  return Object.values(reporterMap).sort((a, b) => b.count - a.count);
+                })()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                  />
+                  <YAxis yAxisId="left" orientation="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip 
+                    formatter={(value, name) => {
+                      if (name === 'Jumlah Kejadian') return `${value} kejadian`;
+                      return `${value} Box`;
+                    }}
+                  />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="count" fill="#6366F1" name="Jumlah Kejadian" />
+                  <Bar yAxisId="right" dataKey="value" fill="#8B5CF6" name="Total Box" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
             {/* Detailed Statistics Table */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-6">
@@ -726,7 +789,7 @@ function AnalyticsPage() {
                       <th className="text-left py-3 px-4 font-semibold text-slate-900">Ukuran</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-900">Jenis Pecah</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-900">Quantity</th>
-                      <th className="text-left py-3 px-4 font-semibold text-slate-900">Keterangan</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-900">Reporter Name</th>
                       <th className="text-center py-3 px-4 font-semibold text-slate-900">Aksi</th>
                     </tr>
                   </thead>
@@ -743,7 +806,7 @@ function AnalyticsPage() {
                           <td className="py-3 px-4 text-slate-700">{incident.ukuran || '-'}</td>
                           <td className="py-3 px-4 text-slate-700">{incident.jenis_pecah || '-'}</td>
                           <td className="py-3 px-4 text-center text-slate-700">{incident.quantity || 0}</td>
-                          <td className="py-3 px-4 text-slate-700">{incident.keterangan || '-'}</td>
+                          <td className="py-3 px-4 text-slate-700">{incident.description || incident.keterangan || '-'}</td>
                           <td className="py-3 px-4 text-center">
                             <button
                               onClick={() => {
@@ -887,9 +950,9 @@ function AnalyticsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Reporter Name</label>
                 <p className="text-slate-900 bg-slate-50 px-3 py-2 rounded-lg min-h-[60px]">
-                  {selectedIncident.keterangan || '-'}
+                  {selectedIncident.description || selectedIncident.keterangan || '-'}
                 </p>
               </div>
 
