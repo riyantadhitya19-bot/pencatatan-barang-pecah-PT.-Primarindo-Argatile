@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Connection</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Koneksi Supabase</h1>
+        <p>Klik tombol di bawah untuk test koneksi database:</p>
+        
+        <button onclick="testConnection()">1. Test Koneksi</button>
+        <button onclick="testFetchData()">2. Ambil Data</button>
+        <button onclick="testInsertData()">3. Test Insert Data</button>
+        <button onclick="checkTable()">4. Cek Tabel</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Ganti dengan credentials Supabase Anda
+        const SUPABASE_URL = 'https://okaewciwdlymipizardw.supabase.co'
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rYWV3Y2l3ZGx5bWlwaXphcmR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4Mzc1NzMsImV4cCI6MjA3ODQxMzU3M30.aZZRV9u_6vVNEuvKKBxFwNFzAMv6sjVqRvVag0yccQE'
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+        function showResult(message, type = 'info') {
+            const result = document.getElementById('result')
+            result.textContent = message
+            result.className = type
+        }
+
+        async function testConnection() {
+            showResult('⏳ Testing connection...', 'info')
+            try {
+                const { data, error } = await supabase.from('incidents').select('count', { count: 'exact', head: true })
+                
+                if (error) {
+                    showResult(`❌ ERROR:\n${JSON.stringify(error, null, 2)}`, 'error')
+                } else {
+                    showResult(`✅ KONEKSI BERHASIL!\n\nJumlah data: ${data || 0} records`, 'success')
+                }
+            } catch (err) {
+                showResult(`❌ EXCEPTION:\n${err.message}\n\n${err.stack}`, 'error')
+            }
+        }
+
+        async function testFetchData() {
+            showResult('⏳ Fetching data...', 'info')
+            try {
+                const { data, error } = await supabase
+                    .from('incidents')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5)
+                
+                if (error) {
+                    showResult(`❌ ERROR:\n${JSON.stringify(error, null, 2)}`, 'error')
+                } else {
+                    showResult(`✅ DATA BERHASIL DIAMBIL!\n\nJumlah: ${data?.length || 0} records\n\nData:\n${JSON.stringify(data, null, 2)}`, 'success')
+                }
+            } catch (err) {
+                showResult(`❌ EXCEPTION:\n${err.message}\n\n${err.stack}`, 'error')
+            }
+        }
+
+        async function testInsertData() {
+            showResult('⏳ Inserting test data...', 'info')
+            try {
+                const testData = {
+                    item_name: 'TEST TILE',
+                    date: new Date().toISOString().split('T')[0],
+                    shading: 'TEST',
+                    sizing: 'TEST',
+                    ukuran: '50x50',
+                    merk: 'TEST',
+                    kualitas: 'ECN',
+                    quantity: 1,
+                    jenis_pecah: 'PECAH LOADING',
+                    description: 'Test insert from HTML',
+                    status: 'investigating'
+                }
+                
+                const { data, error } = await supabase
+                    .from('incidents')
+                    .insert([testData])
+                    .select()
+                
+                if (error) {
+                    showResult(`❌ ERROR:\n${JSON.stringify(error, null, 2)}`, 'error')
+                } else {
+                    showResult(`✅ DATA BERHASIL DITAMBAHKAN!\n\n${JSON.stringify(data, null, 2)}`, 'success')
+                }
+            } catch (err) {
+                showResult(`❌ EXCEPTION:\n${err.message}\n\n${err.stack}`, 'error')
+            }
+        }
+
+        async function checkTable() {
+            showResult('⏳ Checking table structure...', 'info')
+            try {
+                // Try to get table info
+                const { data, error } = await supabase
+                    .from('incidents')
+                    .select('*')
+                    .limit(1)
+                
+                if (error) {
+                    if (error.message.includes('does not exist')) {
+                        showResult(`❌ TABEL TIDAK DITEMUKAN!\n\nTabel 'incidents' belum dibuat.\n\nJalankan SQL ini di Supabase:\n\nCREATE TABLE incidents (\n  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\n  item_name TEXT NOT NULL,\n  date DATE NOT NULL,\n  shading TEXT,\n  sizing TEXT,\n  ukuran TEXT,\n  merk TEXT,\n  kualitas TEXT,\n  quantity INTEGER,\n  jenis_pecah TEXT,\n  description TEXT,\n  photo_url TEXT,\n  status TEXT DEFAULT 'investigating',\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\n\nALTER TABLE incidents DISABLE ROW LEVEL SECURITY;`, 'error')
+                    } else if (error.message.includes('permission') || error.message.includes('RLS')) {
+                        showResult(`❌ PERMISSION DENIED!\n\nRow Level Security aktif.\n\nJalankan SQL ini di Supabase:\n\nALTER TABLE incidents DISABLE ROW LEVEL SECURITY;`, 'error')
+                    } else {
+                        showResult(`❌ ERROR:\n${JSON.stringify(error, null, 2)}`, 'error')
+                    }
+                } else {
+                    showResult(`✅ TABEL DITEMUKAN!\n\nStruktur tabel OK.\nSample data:\n${JSON.stringify(data, null, 2)}`, 'success')
+                }
+            } catch (err) {
+                showResult(`❌ EXCEPTION:\n${err.message}\n\n${err.stack}`, 'error')
+            }
+        }
+
+        // Auto run on load
+        window.onload = () => {
+            showResult('📋 Siap untuk testing.\n\nKlik salah satu tombol di atas untuk memulai.', 'info')
+        }
+    </script>
+</body>
+</html>

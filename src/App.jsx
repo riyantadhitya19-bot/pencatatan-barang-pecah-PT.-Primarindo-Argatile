@@ -80,17 +80,26 @@ function Dashboard({ onLogout }) {
   const fetchIncidents = async () => {
     setLoading(true)
     setConnectionError(false)
+    console.log('🔄 Memuat data dari Supabase...')
     try {
       const { data, error } = await supabase
         .from('incidents')
         .select('*')
         .order('created_at', { ascending: false })
       
-      if (error) throw error
+      console.log('📊 Response dari Supabase:', { data, error })
+      
+      if (error) {
+        console.error('❌ Error dari Supabase:', error)
+        throw error
+      }
+      
       setIncidents(data || [])
       console.log('✅ Data berhasil dimuat:', data?.length || 0, 'records')
+      console.log('📝 Data:', data)
     } catch (error) {
       console.error('❌ Error fetching incidents:', error.message)
+      console.error('❌ Detail error:', error)
       setConnectionError(true)
       setIncidents([])
     } finally {
