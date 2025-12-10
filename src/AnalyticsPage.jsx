@@ -349,38 +349,43 @@ function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 shadow-lg">
+      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 animate-gradient shadow-2xl sticky top-0 z-40 border-b-4 border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* Header content responsive */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 sm:gap-4 animate-fadeIn">
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
               {/* Logo */}
-              <div className="flex-shrink-0 mb-2 sm:mb-0">
-                <img
-                  src="/logo-perusahaan.svg"
-                  alt="Logo PT. Primarindo Argatile"
-                  className="h-16 w-16 object-contain bg-white/10 backdrop-blur-sm rounded-xl p-2 border border-blue-400/30 shadow-lg"
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                    e.target.nextElementSibling.style.display = 'flex'
-                  }}
-                />
-                {/* Fallback Icon jika logo tidak ada */}
-                <div className="hidden p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl shadow-lg border border-blue-400/30">
-                  <X className="w-10 h-10 text-blue-400" />
+              <div className="flex-shrink-0 mb-2 sm:mb-0 animate-float">
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-white/30 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+                  <div className="relative">
+                    <img
+                      src="/logo-perusahaan.svg"
+                      alt="Logo PT. Primarindo Argatile"
+                      className="h-16 w-16 object-contain bg-white/95 backdrop-blur-sm rounded-2xl p-2 border-2 border-white/40 shadow-2xl"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.nextElementSibling.style.display = 'flex'
+                      }}
+                    />
+                    {/* Fallback Icon jika logo tidak ada */}
+                    <div className="hidden p-3 bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border-2 border-white/40">
+                      <TrendingUp className="w-10 h-10 text-blue-500" />
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md">Analisis Data Barang Pecah</h1>
-                <p className="text-slate-300 text-sm mt-1">Dashboard analisis dan statistik lengkap</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Analisis Data Barang Pecah</h1>
+                <p className="text-white/90 text-sm mt-1 drop-shadow font-medium">Dashboard analisis dan statistik lengkap</p>
               </div>
             </div>
             <div className="w-full sm:w-auto flex justify-center sm:justify-end mt-3 sm:mt-0">
               <Link
                 to="/"
-                className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors shadow-sm w-full sm:w-auto justify-center"
+                className="flex items-center gap-2 bg-white/95 text-blue-600 px-6 py-3 rounded-xl hover:bg-white transition-all shadow-lg hover:shadow-white/50 w-full sm:w-auto justify-center font-semibold btn-glow hover:scale-105 transform"
               >
                 <Home className="w-5 h-5" />
                 Kembali ke Dashboard
@@ -392,10 +397,13 @@ function AnalyticsPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Export Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-blue-100 p-6 mb-8 card-hover animate-slideInLeft">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Export Laporan</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <Download className="w-6 h-6 text-blue-500" />
+                Export Laporan
+              </h2>
               <p className="text-slate-600 text-sm">Unduh laporan analisis dalam format PDF</p>
             </div>
             {/* Export Section button responsive */}
@@ -403,7 +411,7 @@ function AnalyticsPage() {
               <button
                 onClick={() => exportToPDF('monthly')}
                 disabled={exporting}
-                className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto justify-center"
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-5 py-3 rounded-xl hover:from-blue-600 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-blue-500/50 w-full sm:w-auto justify-center font-semibold btn-glow hover:scale-105 transform"
               >
                 <Download className="w-4 h-4" />
                 {exporting ? 'Mengekspor...' : 'Summary Bulan Ini'}
@@ -411,7 +419,7 @@ function AnalyticsPage() {
               <button
                 onClick={() => exportToPDF('complete')}
                 disabled={exporting}
-                className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto justify-center"
+                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-xl hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-green-500/50 w-full sm:w-auto justify-center font-semibold btn-glow hover:scale-105 transform"
               >
                 <FileText className="w-4 h-4" />
                 {exporting ? 'Mengekspor...' : 'All Time Lengkap'}
@@ -421,20 +429,23 @@ function AnalyticsPage() {
         </div>
 
         {/* Filter Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-purple-100 p-6 mb-8 card-hover animate-slideInRight">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Filter Data</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <BarChart3 className="w-6 h-6 text-purple-500" />
+                Filter Data
+              </h2>
               <p className="text-slate-600 text-sm">Pilih tahun dan bulan untuk memfilter analisis</p>
             </div>
             {/* Filter options responsive */}
             <div className="flex flex-col md:flex-row gap-3 w-full">
               <div className="flex flex-col w-full md:w-auto">
-                <label className="text-sm font-medium text-slate-700 mb-1">Tahun</label>
+                <label className="text-sm font-semibold text-slate-700 mb-1">Tahun</label>
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                  className="px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full font-medium hover:border-blue-300 transition-all input-glow bg-white/80"
                 >
                   <option value="all">Semua Tahun</option>
                   {Array.from(new Set(incidents.map(inc => new Date(inc.date).getFullYear())))
@@ -445,7 +456,7 @@ function AnalyticsPage() {
                 </select>
               </div>
               <div className="flex flex-col w-full md:w-auto">
-                <label className="text-sm font-medium text-slate-700 mb-1">Bulan</label>
+                <label className="text-sm font-semibold text-slate-700 mb-1">Bulan</label>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
