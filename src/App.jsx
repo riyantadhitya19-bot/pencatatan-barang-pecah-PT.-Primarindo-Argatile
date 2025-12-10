@@ -56,7 +56,7 @@ function Dashboard({ onLogout }) {
   })
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const [formData, setFormData] = useState({
     itemName: '',
     date: new Date().toISOString().split('T')[0],
