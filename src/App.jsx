@@ -88,7 +88,8 @@ function Dashboard({ onLogout }) {
       setIncidents(data || [])
     } catch (error) {
       console.error('Error fetching incidents:', error.message)
-      alert('Gagal memuat data. Pastikan tabel "incidents" sudah dibuat di Supabase.')
+      // Silently handle error - show in console only
+      setIncidents([])
     } finally {
       setLoading(false)
     }
@@ -176,10 +177,9 @@ function Dashboard({ onLogout }) {
       if (fileInput) fileInput.value = ''
       
       setShowForm(false)
-      alert('Data berhasil disimpan!')
+      fetchIncidents()
     } catch (error) {
       console.error('Error:', error.message)
-      alert('Gagal menyimpan data: ' + error.message)
     } finally {
       setUploading(false)
     }
@@ -196,10 +196,8 @@ function Dashboard({ onLogout }) {
         if (error) throw error
 
         await fetchIncidents()
-        alert('Data berhasil dihapus!')
       } catch (error) {
         console.error('Error:', error.message)
-        alert('Gagal menghapus data: ' + error.message)
       }
     }
   }
@@ -264,10 +262,8 @@ function Dashboard({ onLogout }) {
       // Reset form
       setEditingIncident(null)
       setShowEditModal(false)
-      alert('Data berhasil diperbarui!')
     } catch (error) {
       console.error('Error:', error.message)
-      alert('Gagal memperbarui data: ' + error.message)
     } finally {
       setUpdating(false)
     }
@@ -296,7 +292,6 @@ function Dashboard({ onLogout }) {
       await fetchIncidents()
     } catch (error) {
       console.error('Error:', error.message)
-      alert('Gagal mengubah status: ' + error.message)
     }
   }
 
@@ -565,10 +560,8 @@ function Dashboard({ onLogout }) {
 
       doc.save(`Berita-Acara-${baNumber.replace(/\//g, '-')}.pdf`)
       setShowExportModal(false)
-      alert('PDF berhasil diexport!')
     } catch (error) {
       console.error('Error exporting PDF:', error)
-      alert('Gagal export PDF: ' + error.message)
     } finally {
       setExporting(false)
     }
@@ -581,7 +574,7 @@ function Dashboard({ onLogout }) {
       const filteredData = filterDataByDate(incidents, exportDateRange.startDate, exportDateRange.endDate)
 
       if (filteredData.length === 0) {
-        alert('Tidak ada data dalam rentang tanggal yang dipilih')
+        console.warn('Tidak ada data dalam rentang tanggal yang dipilih')
         setExporting(false)
         return
       }
@@ -644,10 +637,8 @@ function Dashboard({ onLogout }) {
 
       XLSX.writeFile(wb, `laporan-barang-pecah-${exportDateRange.startDate}-to-${exportDateRange.endDate}.xlsx`)
       setShowExportModal(false)
-      alert('Excel berhasil diexport!')
     } catch (error) {
       console.error('Error exporting Excel:', error)
-      alert('Gagal export Excel: ' + error.message)
     } finally {
       setExporting(false)
     }
@@ -661,7 +652,7 @@ function Dashboard({ onLogout }) {
       const photosData = filteredData.filter(inc => inc.photo_url)
 
       if (photosData.length === 0) {
-        alert('Tidak ada foto dalam rentang tanggal yang dipilih')
+        console.warn('Tidak ada foto dalam rentang tanggal yang dipilih')
         setExporting(false)
         return
       }
@@ -1018,10 +1009,8 @@ function Dashboard({ onLogout }) {
 
       doc.save(`Dokumentasi-Foto-${baNumber.replace(/\//g, '-')}.pdf`)
       setShowExportModal(false)
-      alert('PDF foto berhasil diekspor!')
     } catch (error) {
       console.error('Error exporting photos PDF:', error)
-      alert('Gagal export PDF foto: ' + error.message)
     } finally {
       setExporting(false)
     }
