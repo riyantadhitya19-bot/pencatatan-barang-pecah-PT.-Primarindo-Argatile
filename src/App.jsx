@@ -48,6 +48,7 @@ function Dashboard({ onLogout }) {
   const [uploading, setUploading] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [connectionError, setConnectionError] = useState(false)
   const [exportDateRange, setExportDateRange] = useState({
     startDate: '',
     endDate: '',
@@ -78,6 +79,7 @@ function Dashboard({ onLogout }) {
 
   const fetchIncidents = async () => {
     setLoading(true)
+    setConnectionError(false)
     try {
       const { data, error } = await supabase
         .from('incidents')
@@ -86,9 +88,10 @@ function Dashboard({ onLogout }) {
       
       if (error) throw error
       setIncidents(data || [])
+      console.log('✅ Data berhasil dimuat:', data?.length || 0, 'records')
     } catch (error) {
-      console.error('Error fetching incidents:', error.message)
-      // Silently handle error - show in console only
+      console.error('❌ Error fetching incidents:', error.message)
+      setConnectionError(true)
       setIncidents([])
     } finally {
       setLoading(false)
@@ -1069,6 +1072,30 @@ function Dashboard({ onLogout }) {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Connection Error Banner */}
+        {connectionError && (
+          <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3 animate-slideInDown">
+            <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-900 mb-1">Koneksi Database Gagal</h3>
+              <p className="text-sm text-red-700 mb-2">
+                Tidak dapat memuat data dari Supabase. Pastikan:
+              </p>
+              <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                <li>Koneksi internet aktif</li>
+                <li>Tabel 'incidents' sudah dibuat di Supabase</li>
+                <li>Credentials di file .env sudah benar</li>
+              </ul>
+              <button
+                onClick={fetchIncidents}
+                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+              >
+                Coba Lagi
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Action Bar */}
         <div className="mb-6 flex flex-col gap-4 items-stretch animate-slideInLeft">
           <div className="relative w-full group">
