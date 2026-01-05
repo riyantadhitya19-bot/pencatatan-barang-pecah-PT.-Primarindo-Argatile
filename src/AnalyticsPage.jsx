@@ -23,6 +23,13 @@ function AnalyticsPage() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedIncident, setSelectedIncident] = useState(null)
 
+  // State untuk export dengan filter - default ke bulan lalu
+  const [showExportFilterModal, setShowExportFilterModal] = useState(false)
+  const lastMonth = new Date()
+  lastMonth.setMonth(lastMonth.getMonth() - 1)
+  const [exportYear, setExportYear] = useState(lastMonth.getFullYear().toString())
+  const [exportMonth, setExportMonth] = useState(lastMonth.getMonth().toString())
+
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1)
@@ -134,6 +141,128 @@ function AnalyticsPage() {
   }
 
   const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316']
+
+  // Export PDF function untuk bulan tertentu
+  const exportCustomMonthPDF = async () => {
+    setExporting(true)
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 20
+      let yPosition = margin
+
+      // Filter data berdasarkan tahun dan bulan yang dipilih
+      const year = parseInt(exportYear)
+      const month = parseInt(exportMonth)
+      const monthStart = new Date(year, month, 1)
+      const monthEnd = new Date(year, month + 1, 0)
+      const customMonthIncidents = incidents.filter(inc => {
+        const incDate = new Date(inc.date)
+        return incDate >= monthStart && incDate <= monthEnd
+      })
+
+      // Header Background
+      pdf.setFillColor(30, 41, 59) // slate-800
+      pdf.rect(0, 0, pageWidth, 50, 'F')
+
+      // Header - Company Name
+      pdf.setFontSize(20)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(255, 255, 255)
+      const companyText = 'PT. PRIMARINDO ARGATILE'
+      const companyWidth = pdf.getTextWidth(companyText)
+      pdf.text(companyText, (pageWidth - companyWidth) / 2, 20)
+
+      // Slogan satu baris
+      const highText = 'HIGH'
+      const qcText = 'Quality Ceramic Tiles'
+      pdf.setFontSize(15); pdf.setFont('helvetica', 'bold')
+      const highW = pdf.getTextWidth(highText)
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'normal')
+      const qcW = pdf.getTextWidth(qcText)
+      const totalW = highW + 2 + qcW
+      let startX = (pageWidth - totalW) / 2
+      pdf.setFontSize(15); pdf.setFont('helvetica', 'bold')
+      pdf.text(highText, startX, 28)
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'normal')
+      pdf.text(qcText, startX + highW + 2, 28)
+
+      // Judul utama
+      const titleText = 'LAPORAN ANALISIS BARANG PECAH - SUMMARY BULAN'
+      pdf.setFontSize(16)
+      pdf.setFont('helvetica', 'bold')
+      const titleWidth = pdf.getTextWidth(titleText)
+      pdf.text(titleText, (pageWidth - titleWidth) / 2, 36)
+
+      // Reset text color untuk konten
+      pdf.setTextColor(0, 0, 0)
+
+      // Informasi periode
+      pdf.setFontSize(10)
+      const periodText = `Periode: ${monthStart.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
+      pdf.text(periodText, margin, 56)
+
+      // Ringkasan statistik utama
+      const monthlyQuantity = customMonthIncidents.reduce((sum, inc) => sum + (inc.quantity || 0), 0)
+      const avgPerIncident = customMonthIncidents.length > 0
+        ? Math.round(monthlyQuantity / customMonthIncidents.length)
+        : 0
+      const stats = [
+        ['Total Kejadian Bulan Ini', customMonthIncidents.length.toString()],
+        ['Total Quantity Bulan Ini', `${monthlyQuantity} Box`],
+        ['Rata-rata per Kejadian', `${avgPerIncident} Box`]
+      ]
+
+      autoTable(pdf, {
+        head: [['Ringkasan', 'Nilai']],
+        body: stats,
+        startY: 64,
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [30, 41, 59], textColor: 255 }
+      })
+
+      yPosition = pdf.lastAutoTable.finalY + 12
+
+      pdf.setFontSize(12)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Catatan', margin, yPosition)
+      yPosition += 8
+
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text(`Ringkasan ini memberikan ikhtisar singkat performa barang pecah untuk bulan ${monthStart.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}.`, margin + 4, yPosition)
+      yPosition += 12
+
+      // Footer Background
+      const pageCount = pdf.internal.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i)
+
+        pdf.setFillColor(30, 41, 59)
+        pdf.rect(0, pageHeight - 20, pageWidth, 20, 'F')
+
+        pdf.setFontSize(11)
+        pdf.setTextColor(255, 255, 255)
+        const factoryText = 'Factory : Jl. Raya Jakarta–Serang KM. 68 Desa Nambo Ilir, Kec. Kibin - Kab. Serang'
+        const factoryWidth = pdf.getTextWidth(factoryText)
+        pdf.text(factoryText, (pageWidth - factoryWidth) / 2, pageHeight - 10)
+      }
+
+      // Save PDF
+      const fileName = `laporan-analisis-barang-pecah-${monthStart.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }).replace(/ /g, '-')}.pdf`
+      pdf.save(fileName)
+
+      alert('PDF berhasil diekspor!')
+      setShowExportFilterModal(false)
+    } catch (error) {
+      console.error('Error exporting PDF:', error)
+      alert('Gagal mengekspor PDF. Silakan coba lagi.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   // Export PDF function
   const exportToPDF = async (type) => {
@@ -415,6 +544,14 @@ function AnalyticsPage() {
               >
                 <Download className="w-4 h-4" />
                 {exporting ? 'Mengekspor...' : 'Summary Bulan Ini'}
+              </button>
+              <button
+                onClick={() => setShowExportFilterModal(true)}
+                disabled={exporting}
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-5 py-3 rounded-xl hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-purple-500/50 w-full sm:w-auto justify-center font-semibold btn-glow hover:scale-105 transform"
+              >
+                <Download className="w-4 h-4" />
+                Summary Bulan Sebelumnya
               </button>
               <button
                 onClick={() => exportToPDF('complete')}
@@ -881,6 +1018,87 @@ function AnalyticsPage() {
           </div>
         )}
       </main>
+
+      {/* Modal Filter Export */}
+      {showExportFilterModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-purple-500 to-pink-600 rounded-t-2xl">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Download className="w-6 h-6" />
+                Export Summary Bulan
+              </h3>
+              <button
+                onClick={() => setShowExportFilterModal(false)}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-slate-600 text-sm mb-4">
+                Pilih bulan dan tahun yang ingin diekspor
+              </p>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Tahun</label>
+                <select
+                  value={exportYear}
+                  onChange={(e) => setExportYear(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-medium hover:border-purple-300 transition-all bg-white/80"
+                >
+                  {Array.from(new Set(incidents.map(inc => new Date(inc.date).getFullYear())))
+                    .sort((a, b) => b - a)
+                    .map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Bulan</label>
+                <select
+                  value={exportMonth}
+                  onChange={(e) => setExportMonth(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-medium hover:border-purple-300 transition-all bg-white/80"
+                >
+                  {Array.from({ length: 12 }, (_, i) => i).map(month => (
+                    <option key={month} value={month}>
+                      {new Date(2024, month, 1).toLocaleDateString('id-ID', { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                <p className="text-sm text-purple-800">
+                  <span className="font-semibold">Periode yang dipilih:</span>
+                  <br />
+                  {new Date(parseInt(exportYear), parseInt(exportMonth), 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
+              <button
+                onClick={() => setShowExportFilterModal(false)}
+                className="px-5 py-2.5 text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-all font-semibold border-2 border-slate-200 hover:border-slate-300"
+              >
+                Batal
+              </button>
+              <button
+                onClick={exportCustomMonthPDF}
+                disabled={exporting}
+                className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-purple-500/50 font-semibold flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {exporting ? 'Mengekspor...' : 'Export PDF'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Detail Insiden */}
       {showDetailModal && selectedIncident && (
